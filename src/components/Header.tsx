@@ -7,6 +7,7 @@ import {
   Menu,
   X,
   ChevronDown,
+  ChevronRight,
   Cloud,
   Database,
   Users,
@@ -104,6 +105,7 @@ const navigation = [
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [mobileDropdown, setMobileDropdown] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -114,8 +116,24 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Close mobile menu when screen size changes to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setMobileMenuOpen(false);
+        setMobileDropdown(null);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const getDropdownItems = (type: string) => {
     return type === "services" ? services : resources;
+  };
+
+  const toggleMobileDropdown = (type: string) => {
+    setMobileDropdown(mobileDropdown === type ? null : type);
   };
 
   return (
@@ -127,19 +145,28 @@ export default function Header() {
       }`}
     >
       <nav className="container-custom" aria-label="Global">
-        <div className="flex items-center justify-between h-[72px] lg:h-[80px]">
-          {/* Logo */}
+        <div className="flex items-center justify-between h-[64px] md:h-[72px] lg:h-[80px]">
+          {/* Logo - Use different logos based on scroll state */}
           <Link href="/" className="flex items-center">
-            <Image
-              src="https://oceanbluecorp.com/images/logo-oc.png"
-              alt="Ocean Blue Corporation"
-              width={160}
-              height={45}
-              className={`h-10 lg:h-11 w-auto transition-all ${
-                scrolled ? "" : "brightness-0 invert"
-              }`}
-              priority
-            />
+            {scrolled ? (
+              <Image
+                src="https://www.oceanbluecorp.com/images/logo.png"
+                alt="Ocean Blue Corporation"
+                width={160}
+                height={45}
+                className="h-9 md:h-10 lg:h-11 w-auto transition-all"
+                priority
+              />
+            ) : (
+              <Image
+                src="https://oceanbluecorp.com/images/logo-oc.png"
+                alt="Ocean Blue Corporation"
+                width={160}
+                height={45}
+                className="h-9 md:h-10 lg:h-11 w-auto transition-all brightness-0 invert"
+                priority
+              />
+            )}
           </Link>
 
           {/* Desktop Navigation */}
@@ -216,20 +243,6 @@ export default function Header() {
             )}
           </div>
 
-          {/* CTA Button */}
-          <div className="hidden lg:flex lg:items-center lg:gap-4">
-            <Link
-              href="/contact"
-              className={`px-5 py-2.5 rounded-lg font-semibold transition-all duration-300 ${
-                scrolled
-                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-md shadow-blue-500/20"
-                  : "bg-white text-blue-800 hover:bg-blue-50"
-              }`}
-            >
-              Get Started
-            </Link>
-          </div>
-
           {/* Mobile menu button */}
           <button
             type="button"
@@ -238,9 +251,16 @@ export default function Header() {
                 ? "text-slate-700 hover:bg-slate-100"
                 : "text-white hover:bg-white/10"
             }`}
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onClick={() => {
+              setMobileMenuOpen(!mobileMenuOpen);
+              if (mobileMenuOpen) {
+                setMobileDropdown(null);
+              }
+            }}
+            aria-expanded={mobileMenuOpen}
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
           >
-            <span className="sr-only">Open menu</span>
+            <span className="sr-only">{mobileMenuOpen ? "Close menu" : "Open menu"}</span>
             {mobileMenuOpen ? (
               <X className="w-6 h-6" />
             ) : (
@@ -251,50 +271,82 @@ export default function Header() {
 
         {/* Mobile menu */}
         <div
-          className={`lg:hidden overflow-hidden transition-all duration-300 ${
-            mobileMenuOpen ? "max-h-[900px] opacity-100" : "max-h-0 opacity-0"
+          className={`lg:hidden transition-all duration-300 ease-in-out ${
+            mobileMenuOpen
+              ? "max-h-[calc(100vh-64px)] opacity-100 overflow-y-auto"
+              : "max-h-0 opacity-0 overflow-hidden"
           }`}
         >
-          <div className="bg-white rounded-xl shadow-xl mb-4 p-4 space-y-2 border border-slate-100">
+          <div className="bg-white rounded-xl shadow-xl mb-4 border border-slate-100 overflow-hidden">
             {navigation.map((item) => (
-              <div key={item.name}>
+              <div key={item.name} className="border-b border-slate-100 last:border-b-0">
                 {item.hasDropdown ? (
-                  <div className="space-y-2">
-                    <p className="px-3 py-2 font-semibold text-slate-800">{item.name}</p>
-                    <div className={`${item.dropdownType === "services" ? "grid grid-cols-2" : "flex flex-col"} gap-1 pl-2`}>
-                      {getDropdownItems(item.dropdownType || "").map((dropItem) => (
-                        <Link
-                          key={dropItem.name}
-                          href={dropItem.href}
-                          className="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-50 text-sm text-slate-600 hover:text-blue-700"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          <dropItem.icon className="w-4 h-4 text-blue-600" />
-                          <span>{dropItem.name}</span>
-                        </Link>
-                      ))}
+                  <div>
+                    {/* Dropdown Toggle */}
+                    <button
+                      onClick={() => toggleMobileDropdown(item.dropdownType || "")}
+                      className="w-full flex items-center justify-between px-4 py-3.5 text-slate-800 hover:bg-slate-50 transition-colors"
+                      aria-expanded={mobileDropdown === item.dropdownType}
+                    >
+                      <span className="font-semibold">{item.name}</span>
+                      <ChevronDown
+                        className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${
+                          mobileDropdown === item.dropdownType ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+
+                    {/* Dropdown Content */}
+                    <div
+                      className={`transition-all duration-300 ease-in-out ${
+                        mobileDropdown === item.dropdownType
+                          ? "max-h-[500px] opacity-100"
+                          : "max-h-0 opacity-0 overflow-hidden"
+                      }`}
+                    >
+                      <div className="bg-slate-50 px-4 py-3 space-y-1">
+                        {getDropdownItems(item.dropdownType || "").map((dropItem) => (
+                          <Link
+                            key={dropItem.name}
+                            href={dropItem.href}
+                            className="flex items-center gap-3 p-3 rounded-lg hover:bg-white transition-colors group"
+                            onClick={() => {
+                              setMobileMenuOpen(false);
+                              setMobileDropdown(null);
+                            }}
+                          >
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                              <dropItem.icon className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-slate-800 group-hover:text-blue-700 transition-colors">
+                                {dropItem.name}
+                              </p>
+                              <p className="text-sm text-slate-500 truncate">
+                                {dropItem.description}
+                              </p>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 flex-shrink-0" />
+                          </Link>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ) : (
                   <Link
                     href={item.href}
-                    className="block px-3 py-2 rounded-lg font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-between px-4 py-3.5 font-semibold text-slate-800 hover:bg-slate-50 transition-colors"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setMobileDropdown(null);
+                    }}
                   >
-                    {item.name}
+                    <span>{item.name}</span>
+                    <ChevronRight className="w-4 h-4 text-slate-400" />
                   </Link>
                 )}
               </div>
             ))}
-            <div className="pt-2">
-              <Link
-                href="/contact"
-                className="block w-full text-center px-4 py-3 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold hover:from-blue-700 hover:to-blue-800 transition-all"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Get Started
-              </Link>
-            </div>
           </div>
         </div>
       </nav>
