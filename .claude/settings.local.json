@@ -4,7 +4,8 @@
       "Bash(npm run build:*)",
       "WebFetch(domain:oceanbluecorp.com)",
       "mcp__ide__getDiagnostics",
-      "Bash(npm install framer-motion)"
+      "Bash(npm install framer-motion)",
+      "Bash(npm install:*)"
     ]
   }
 }

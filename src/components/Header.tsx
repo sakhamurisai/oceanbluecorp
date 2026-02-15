@@ -19,7 +19,11 @@ import {
   BookOpen,
   FileText,
   Briefcase,
+  LogOut,
+  User,
+  LayoutDashboard,
 } from "lucide-react";
+import { useAuth, UserRole } from "@/lib/auth";
 
 const services = [
   {
@@ -107,6 +111,8 @@ export default function Header() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [mobileDropdown, setMobileDropdown] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { user, isAuthenticated, isLoading, signIn, signOut, hasAnyRole } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -115,6 +121,23 @@ export default function Header() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Get dashboard link based on role
+  const getDashboardLink = () => {
+    if (hasAnyRole([UserRole.ADMIN])) return "/admin";
+    if (hasAnyRole([UserRole.HR])) return "/admin/applications";
+    return "/dashboard";
+  };
+
+  // Get user initials
+  const getUserInitials = () => {
+    if (!user?.name) return "U";
+    const names = user.name.split(" ");
+    if (names.length >= 2) {
+      return `${names[0][0]}${names[1][0]}`.toUpperCase();
+    }
+    return user.name[0].toUpperCase();
+  };
 
   // Close mobile menu when screen size changes to desktop
   useEffect(() => {
@@ -241,6 +264,91 @@ export default function Header() {
                 </Link>
               )
             )}
+
+            {/* Auth Section */}
+            <div className="ml-4 pl-4 border-l border-white/20 flex items-center gap-2">
+              {isLoading ? (
+                <div className="w-8 h-8 rounded-full bg-white/10 animate-pulse" />
+              ) : isAuthenticated ? (
+                <div
+                  className="relative"
+                  onMouseEnter={() => setUserMenuOpen(true)}
+                  onMouseLeave={() => setUserMenuOpen(false)}
+                >
+                  <button className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
+                      {getUserInitials()}
+                    </div>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${
+                        scrolled ? "text-slate-600" : "text-white/80"
+                      } ${userMenuOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+
+                  {/* User Dropdown */}
+                  <div
+                    className={`absolute top-full right-0 pt-2 transition-all duration-200 ${
+                      userMenuOpen
+                        ? "opacity-100 visible translate-y-0"
+                        : "opacity-0 invisible -translate-y-2"
+                    }`}
+                  >
+                    <div className="bg-white rounded-xl shadow-xl shadow-blue-900/10 border border-slate-100 py-2 w-56">
+                      <div className="px-4 py-3 border-b border-slate-100">
+                        <p className="font-medium text-slate-800">{user?.name}</p>
+                        <p className="text-sm text-slate-500">{user?.email}</p>
+                        <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700 capitalize">
+                          {user?.role}
+                        </span>
+                      </div>
+                      <Link
+                        href={getDashboardLink()}
+                        className="flex items-center gap-3 px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        <LayoutDashboard className="w-4 h-4" />
+                        Dashboard
+                      </Link>
+                      <Link
+                        href="/dashboard/settings"
+                        className="flex items-center gap-3 px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        <Settings className="w-4 h-4" />
+                        Settings
+                      </Link>
+                      <div className="border-t border-slate-100 mt-1 pt-1">
+                        <button
+                          onClick={signOut}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Sign Out
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Link
+                    href="/auth/signin"
+                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                      scrolled
+                        ? "text-slate-700 hover:text-blue-700 hover:bg-blue-50"
+                        : "text-white/90 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/auth/signup"
+                    className="px-4 py-2 rounded-lg font-medium bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700 transition-all shadow-sm"
+                  >
+                    Sign Up
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Mobile menu button */}
@@ -347,6 +455,75 @@ export default function Header() {
                 )}
               </div>
             ))}
+
+            {/* Mobile Auth Section */}
+            <div className="border-t border-slate-200 mt-2 pt-2">
+              {isLoading ? (
+                <div className="px-4 py-3">
+                  <div className="h-10 bg-slate-100 rounded-lg animate-pulse" />
+                </div>
+              ) : isAuthenticated ? (
+                <>
+                  <div className="px-4 py-3 bg-slate-50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-semibold">
+                        {getUserInitials()}
+                      </div>
+                      <div>
+                        <p className="font-medium text-slate-800">{user?.name}</p>
+                        <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700 capitalize">
+                          {user?.role}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <Link
+                    href={getDashboardLink()}
+                    className="flex items-center gap-3 px-4 py-3.5 text-slate-700 hover:bg-slate-50 transition-colors"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setMobileDropdown(null);
+                    }}
+                  >
+                    <LayoutDashboard className="w-5 h-5 text-slate-400" />
+                    <span className="font-medium">Dashboard</span>
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      signOut();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    <span className="font-medium">Sign Out</span>
+                  </button>
+                </>
+              ) : (
+                <div className="px-4 py-3 space-y-2">
+                  <Link
+                    href="/auth/signin"
+                    className="block w-full px-4 py-3 text-center font-medium text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setMobileDropdown(null);
+                    }}
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/auth/signup"
+                    className="block w-full px-4 py-3 text-center font-medium text-white bg-gradient-to-r from-cyan-500 to-blue-600 rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-colors"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setMobileDropdown(null);
+                    }}
+                  >
+                    Sign Up
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </nav>

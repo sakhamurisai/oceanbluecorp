@@ -16,23 +16,47 @@ import {
   Search,
 } from "lucide-react";
 import { useState } from "react";
-import Image from "next/image";
+import { useAuth, UserRole } from "@/lib/auth";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 const navigation = [
-  { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
-  { name: "Content", href: "/admin/content", icon: FileText },
-  { name: "Job Postings", href: "/admin/jobs", icon: Briefcase },
-  { name: "Applications", href: "/admin/applications", icon: Users },
-  { name: "Settings", href: "/admin/settings", icon: Settings },
+  { name: "Dashboard", href: "/admin", icon: LayoutDashboard, roles: [UserRole.ADMIN] },
+  { name: "Content", href: "/admin/content", icon: FileText, roles: [UserRole.ADMIN] },
+  { name: "Job Postings", href: "/admin/jobs", icon: Briefcase, roles: [UserRole.ADMIN, UserRole.HR] },
+  { name: "Applications", href: "/admin/applications", icon: Users, roles: [UserRole.ADMIN, UserRole.HR] },
+  { name: "Settings", href: "/admin/settings", icon: Settings, roles: [UserRole.ADMIN] },
 ];
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { user, signOut, hasAnyRole } = useAuth();
+
+  // Filter navigation based on user role
+  const filteredNavigation = navigation.filter((item) => hasAnyRole(item.roles));
+
+  // Get user initials
+  const getUserInitials = () => {
+    if (!user?.name) return "U";
+    const names = user.name.split(" ");
+    if (names.length >= 2) {
+      return `${names[0][0]}${names[1][0]}`.toUpperCase();
+    }
+    return user.name[0].toUpperCase();
+  };
+
+  // Get role badge color
+  const getRoleBadgeColor = () => {
+    switch (user?.role) {
+      case UserRole.ADMIN:
+        return "bg-red-500/20 text-red-400 border-red-500/30";
+      case UserRole.HR:
+        return "bg-purple-500/20 text-purple-400 border-purple-500/30";
+      default:
+        return "bg-blue-500/20 text-blue-400 border-blue-500/30";
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -69,7 +93,7 @@ export default function AdminLayout({
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-            {navigation.map((item) => {
+            {filteredNavigation.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
@@ -90,16 +114,52 @@ export default function AdminLayout({
 
           {/* User section */}
           <div className="p-4 border-t border-white/10">
-            <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/5">
+            <div
+              className="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/5 cursor-pointer hover:bg-white/10 transition-colors"
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+            >
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-semibold">
-                A
+                {getUserInitials()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">Admin User</p>
-                <p className="text-xs text-gray-400 truncate">admin@oceanbluecorp.com</p>
+                <p className="text-sm font-medium text-white truncate">{user?.name || "User"}</p>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full border capitalize ${getRoleBadgeColor()}`}
+                  >
+                    {user?.role}
+                  </span>
+                </div>
               </div>
-              <ChevronDown className="w-4 h-4 text-gray-400" />
+              <ChevronDown
+                className={`w-4 h-4 text-gray-400 transition-transform ${
+                  userMenuOpen ? "rotate-180" : ""
+                }`}
+              />
             </div>
+
+            {/* User dropdown menu */}
+            {userMenuOpen && (
+              <div className="mt-2 py-2 rounded-lg bg-white/10 border border-white/10">
+                <p className="px-4 py-1 text-xs text-gray-400 truncate">{user?.email}</p>
+                <div className="my-2 border-t border-white/10" />
+                <Link
+                  href="/admin/settings"
+                  className="flex items-center gap-3 px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  <Settings className="w-4 h-4" />
+                  Settings
+                </Link>
+                <button
+                  onClick={signOut}
+                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </button>
+              </div>
+            )}
+
             <Link
               href="/"
               className="flex items-center gap-3 px-4 py-3 mt-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all"
@@ -136,8 +196,14 @@ export default function AdminLayout({
               <Bell className="w-5 h-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
             </button>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
-              A
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:block text-right">
+                <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+              </div>
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
+                {getUserInitials()}
+              </div>
             </div>
           </div>
         </header>
@@ -146,5 +212,17 @@ export default function AdminLayout({
         <main className="p-4 lg:p-8">{children}</main>
       </div>
     </div>
+  );
+}
+
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <ProtectedRoute requiredRoles={[UserRole.ADMIN, UserRole.HR]}>
+      <AdminLayoutContent>{children}</AdminLayoutContent>
+    </ProtectedRoute>
   );
 }
