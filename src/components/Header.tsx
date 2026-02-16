@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Menu,
   X,
@@ -20,8 +21,9 @@ import {
   FileText,
   Briefcase,
   LogOut,
-  User,
   LayoutDashboard,
+  Sparkles,
+  ArrowRight,
 } from "lucide-react";
 import { useAuth, UserRole } from "@/lib/auth";
 
@@ -31,69 +33,80 @@ const services = [
     href: "/services#erp",
     icon: BarChart3,
     description: "SAP & Oracle Implementation",
+    gradient: "from-blue-600 to-indigo-600",
   },
   {
     name: "Cloud Services",
     href: "/services#cloud",
     icon: Cloud,
     description: "Cloud Migration & Management",
+    gradient: "from-cyan-600 to-blue-600",
   },
   {
-    name: "Data Analytics & AI",
+    name: "AI & Analytics",
     href: "/services#ai",
     icon: Cpu,
-    description: "AI & Machine Learning Solutions",
+    description: "AI & Machine Learning",
+    gradient: "from-violet-600 to-purple-600",
   },
   {
     name: "Salesforce",
     href: "/services#salesforce",
     icon: Database,
     description: "CRM Implementation",
+    gradient: "from-sky-600 to-blue-600",
   },
   {
-    name: "Staffing Services",
+    name: "Staffing",
     href: "/services#staffing",
     icon: Users,
     description: "IT Talent Acquisition",
+    gradient: "from-teal-600 to-cyan-600",
   },
   {
-    name: "Training Services",
+    name: "Training",
     href: "/services#training",
     icon: GraduationCap,
-    description: "Corporate Training Programs",
+    description: "Corporate Programs",
+    gradient: "from-amber-600 to-orange-600",
   },
   {
     name: "Managed Services",
     href: "/services#managed",
     icon: Settings,
     description: "IT Management & Support",
+    gradient: "from-rose-600 to-pink-600",
   },
   {
     name: "Outsourcing",
     href: "/services#outsourcing",
     icon: Headphones,
     description: "Business Process Outsourcing",
+    gradient: "from-indigo-600 to-blue-600",
   },
 ];
 
 const resources = [
   {
-    name: "Ebook",
+    name: "Ebooks",
     href: "/resources/ebook",
     icon: BookOpen,
     description: "Free guides & whitepapers",
+    gradient: "from-emerald-600 to-teal-600",
   },
   {
     name: "Blog",
     href: "/resources/blog",
     icon: FileText,
     description: "Latest insights & articles",
+    gradient: "from-orange-600 to-amber-600",
   },
   {
     name: "Case Studies",
     href: "/resources/case-studies",
     icon: Briefcase,
     description: "Success stories & results",
+    gradient: "from-purple-600 to-pink-600",
   },
 ];
 
@@ -112,11 +125,11 @@ export default function Header() {
   const [mobileDropdown, setMobileDropdown] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const { user, isAuthenticated, isLoading, signIn, signOut, hasAnyRole } = useAuth();
+  const { user, isAuthenticated, isLoading, signOut, hasAnyRole } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
+      setScrolled(window.scrollY > 20);
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
@@ -139,7 +152,7 @@ export default function Header() {
     return user.name[0].toUpperCase();
   };
 
-  // Close mobile menu when screen size changes to desktop
+  // Close mobile menu on resize
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 1024) {
@@ -151,6 +164,21 @@ export default function Header() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (mobileMenuOpen) {
+        const target = e.target as HTMLElement;
+        if (!target.closest('nav')) {
+          setMobileMenuOpen(false);
+          setMobileDropdown(null);
+        }
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [mobileMenuOpen]);
+
   const getDropdownItems = (type: string) => {
     return type === "services" ? services : resources;
   };
@@ -160,373 +188,376 @@ export default function Header() {
   };
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? "bg-white shadow-lg shadow-blue-900/5"
-          : "bg-[#1e3a8a]"
-      }`}
-    >
-      <nav className="container-custom" aria-label="Global">
-        <div className="flex items-center justify-between h-[64px] md:h-[72px] lg:h-[80px]">
-          {/* Logo - Use different logos based on scroll state */}
-          <Link href="/" className="flex items-center">
-            {scrolled ? (
+    <>
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled 
+            ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200" 
+            : "bg-white shadow-sm"
+        }`}
+      >
+        <nav className="container mx-auto px-4 sm:px-6 lg:px-8" aria-label="Global">
+          <div className="flex items-center justify-between h-16 md:h-20">
+            {/* Logo - Always visible with proper contrast */}
+            <Link href="/" className="flex items-center">
               <Image
-                src="https://www.oceanbluecorp.com/images/logo.png"
+                src="https://oceanbluecorp.com/images/logo.png"
                 alt="Ocean Blue Corporation"
-                width={160}
-                height={45}
-                className="h-9 md:h-10 lg:h-11 w-auto transition-all"
+                width={140}
+                height={40}
+                className="h-7 md:h-8 w-auto"
                 priority
               />
-            ) : (
-              <Image
-                src="https://oceanbluecorp.com/images/logo-oc.png"
-                alt="Ocean Blue Corporation"
-                width={160}
-                height={45}
-                className="h-9 md:h-10 lg:h-11 w-auto transition-all brightness-0 invert"
-                priority
-              />
-            )}
-          </Link>
+            </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex lg:items-center lg:gap-1">
-            {navigation.map((item) =>
-              item.hasDropdown ? (
-                <div
-                  key={item.name}
-                  className="relative"
-                  onMouseEnter={() => setActiveDropdown(item.dropdownType || null)}
-                  onMouseLeave={() => setActiveDropdown(null)}
-                >
-                  <button
-                    className={`flex items-center gap-1 px-4 py-2 rounded-lg font-medium transition-all ${
-                      scrolled
-                        ? "text-slate-700 hover:text-blue-700 hover:bg-blue-50"
-                        : "text-white/90 hover:text-white hover:bg-white/10"
-                    }`}
-                  >
-                    {item.name}
-                    <ChevronDown
-                      className={`w-4 h-4 transition-transform ${
-                        activeDropdown === item.dropdownType ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-
-                  {/* Dropdown */}
+            {/* Desktop Navigation - Always visible with proper contrast */}
+            <div className="hidden lg:flex lg:items-center lg:gap-1">
+              {navigation.map((item) =>
+                item.hasDropdown ? (
                   <div
-                    className={`absolute top-full left-1/2 -translate-x-1/2 pt-2 transition-all duration-200 ${
-                      activeDropdown === item.dropdownType
-                        ? "opacity-100 visible translate-y-0"
-                        : "opacity-0 invisible -translate-y-2"
-                    }`}
+                    key={item.name}
+                    className="relative"
+                    onMouseEnter={() => setActiveDropdown(item.dropdownType || null)}
+                    onMouseLeave={() => setActiveDropdown(null)}
                   >
-                    <div className={`bg-white rounded-xl shadow-xl shadow-blue-900/10 border border-slate-100 p-4 ${
-                      item.dropdownType === "services" ? "w-[540px] grid grid-cols-2 gap-1" : "w-[320px] space-y-1"
-                    }`}>
-                      {getDropdownItems(item.dropdownType || "").map((dropItem) => (
-                        <Link
-                          key={dropItem.name}
-                          href={dropItem.href}
-                          className="flex items-start gap-3 p-3 rounded-lg hover:bg-blue-50 transition-colors group"
-                        >
-                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center group-hover:from-blue-600 group-hover:to-blue-700 transition-colors shadow-sm">
-                            <dropItem.icon className="w-5 h-5 text-white" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-slate-800 group-hover:text-blue-700">
-                              {dropItem.name}
-                            </p>
-                            <p className="text-sm text-slate-500">
-                              {dropItem.description}
-                            </p>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    scrolled
-                      ? "text-slate-700 hover:text-blue-700 hover:bg-blue-50"
-                      : "text-white/90 hover:text-white hover:bg-white/10"
-                  }`}
-                >
-                  {item.name}
-                </Link>
-              )
-            )}
-
-            {/* Auth Section */}
-            <div className="ml-4 pl-4 border-l border-white/20 flex items-center gap-2">
-              {isLoading ? (
-                <div className="w-8 h-8 rounded-full bg-white/10 animate-pulse" />
-              ) : isAuthenticated ? (
-                <div
-                  className="relative"
-                  onMouseEnter={() => setUserMenuOpen(true)}
-                  onMouseLeave={() => setUserMenuOpen(false)}
-                >
-                  <button className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-white/10 transition-colors">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
-                      {getUserInitials()}
-                    </div>
-                    <ChevronDown
-                      className={`w-4 h-4 transition-transform ${
-                        scrolled ? "text-slate-600" : "text-white/80"
-                      } ${userMenuOpen ? "rotate-180" : ""}`}
-                    />
-                  </button>
-
-                  {/* User Dropdown */}
-                  <div
-                    className={`absolute top-full right-0 pt-2 transition-all duration-200 ${
-                      userMenuOpen
-                        ? "opacity-100 visible translate-y-0"
-                        : "opacity-0 invisible -translate-y-2"
-                    }`}
-                  >
-                    <div className="bg-white rounded-xl shadow-xl shadow-blue-900/10 border border-slate-100 py-2 w-56">
-                      <div className="px-4 py-3 border-b border-slate-100">
-                        <p className="font-medium text-slate-800">{user?.name}</p>
-                        <p className="text-sm text-slate-500">{user?.email}</p>
-                        <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700 capitalize">
-                          {user?.role}
-                        </span>
-                      </div>
-                      <Link
-                        href={getDashboardLink()}
-                        className="flex items-center gap-3 px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors"
-                      >
-                        <LayoutDashboard className="w-4 h-4" />
-                        Dashboard
-                      </Link>
-                      <Link
-                        href="/dashboard/settings"
-                        className="flex items-center gap-3 px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors"
-                      >
-                        <Settings className="w-4 h-4" />
-                        Settings
-                      </Link>
-                      <div className="border-t border-slate-100 mt-1 pt-1">
-                        <button
-                          onClick={signOut}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors"
-                        >
-                          <LogOut className="w-4 h-4" />
-                          Sign Out
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <Link
-                    href="/auth/signin"
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                      scrolled
-                        ? "text-slate-700 hover:text-blue-700 hover:bg-blue-50"
-                        : "text-white/90 hover:text-white hover:bg-white/10"
-                    }`}
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    href="/auth/signup"
-                    className="px-4 py-2 rounded-lg font-medium bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700 transition-all shadow-sm"
-                  >
-                    Sign Up
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Mobile menu button */}
-          <button
-            type="button"
-            className={`lg:hidden p-2 rounded-lg transition-colors ${
-              scrolled
-                ? "text-slate-700 hover:bg-slate-100"
-                : "text-white hover:bg-white/10"
-            }`}
-            onClick={() => {
-              setMobileMenuOpen(!mobileMenuOpen);
-              if (mobileMenuOpen) {
-                setMobileDropdown(null);
-              }
-            }}
-            aria-expanded={mobileMenuOpen}
-            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-          >
-            <span className="sr-only">{mobileMenuOpen ? "Close menu" : "Open menu"}</span>
-            {mobileMenuOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Menu className="w-6 h-6" />
-            )}
-          </button>
-        </div>
-
-        {/* Mobile menu */}
-        <div
-          className={`lg:hidden transition-all duration-300 ease-in-out ${
-            mobileMenuOpen
-              ? "max-h-[calc(100vh-64px)] opacity-100 overflow-y-auto"
-              : "max-h-0 opacity-0 overflow-hidden"
-          }`}
-        >
-          <div className="bg-white rounded-xl shadow-xl mb-4 border border-slate-100 overflow-hidden">
-            {navigation.map((item) => (
-              <div key={item.name} className="border-b border-slate-100 last:border-b-0">
-                {item.hasDropdown ? (
-                  <div>
-                    {/* Dropdown Toggle */}
                     <button
-                      onClick={() => toggleMobileDropdown(item.dropdownType || "")}
-                      className="w-full flex items-center justify-between px-4 py-3.5 text-slate-800 hover:bg-slate-50 transition-colors"
-                      aria-expanded={mobileDropdown === item.dropdownType}
+                      className={`flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        scrolled
+                          ? "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                          : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                      }`}
                     >
-                      <span className="font-semibold">{item.name}</span>
-                      <ChevronDown
-                        className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${
-                          mobileDropdown === item.dropdownType ? "rotate-180" : ""
-                        }`}
-                      />
+                      {item.name}
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                        activeDropdown === item.dropdownType ? "rotate-180" : ""
+                      }`} />
                     </button>
 
-                    {/* Dropdown Content */}
-                    <div
-                      className={`transition-all duration-300 ease-in-out ${
-                        mobileDropdown === item.dropdownType
-                          ? "max-h-[500px] opacity-100"
-                          : "max-h-0 opacity-0 overflow-hidden"
-                      }`}
-                    >
-                      <div className="bg-slate-50 px-4 py-3 space-y-1">
-                        {getDropdownItems(item.dropdownType || "").map((dropItem) => (
-                          <Link
-                            key={dropItem.name}
-                            href={dropItem.href}
-                            className="flex items-center gap-3 p-3 rounded-lg hover:bg-white transition-colors group"
-                            onClick={() => {
-                              setMobileMenuOpen(false);
-                              setMobileDropdown(null);
-                            }}
-                          >
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                              <dropItem.icon className="w-5 h-5 text-white" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-slate-800 group-hover:text-blue-700 transition-colors">
-                                {dropItem.name}
-                              </p>
-                              <p className="text-sm text-slate-500 truncate">
-                                {dropItem.description}
-                              </p>
-                            </div>
-                            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 flex-shrink-0" />
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
+                    {/* Dropdown */}
+                    <AnimatePresence>
+                      {activeDropdown === item.dropdownType && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute top-full left-1/2 -translate-x-1/2 pt-4"
+                        >
+                          <div className={`bg-white rounded-2xl shadow-xl border border-gray-200 p-3 ${
+                            item.dropdownType === "services" ? "w-[600px] grid grid-cols-2 gap-1" : "w-[300px]"
+                          }`}>
+                            {getDropdownItems(item.dropdownType || "").map((dropItem) => (
+                              <Link
+                                key={dropItem.name}
+                                href={dropItem.href}
+                                className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-all group"
+                              >
+                                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${dropItem.gradient} flex items-center justify-center shadow-sm group-hover:shadow transition-shadow flex-shrink-0`}>
+                                  <dropItem.icon className="w-5 h-5 text-white" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-gray-900 group-hover:text-gray-900 transition-colors text-sm">
+                                    {dropItem.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500 truncate">
+                                    {dropItem.description}
+                                  </p>
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                              </Link>
+                            ))}
+                            
+                            {/* View all link */}
+                            <Link
+                              href={item.dropdownType === "services" ? "/services" : "/resources"}
+                              className="col-span-2 mt-1 flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all group"
+                            >
+                              <span className="text-sm font-medium text-gray-900">
+                                View all {item.dropdownType}
+                              </span>
+                              <ArrowRight className="w-4 h-4 text-gray-500 group-hover:translate-x-0.5 transition-transform" />
+                            </Link>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 ) : (
                   <Link
+                    key={item.name}
                     href={item.href}
-                    className="flex items-center justify-between px-4 py-3.5 font-semibold text-slate-800 hover:bg-slate-50 transition-colors"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      setMobileDropdown(null);
-                    }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      scrolled
+                        ? "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                    }`}
                   >
-                    <span>{item.name}</span>
-                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                    {item.name}
                   </Link>
-                )}
-              </div>
-            ))}
+                )
+              )}
 
-            {/* Mobile Auth Section */}
-            <div className="border-t border-slate-200 mt-2 pt-2">
-              {isLoading ? (
-                <div className="px-4 py-3">
-                  <div className="h-10 bg-slate-100 rounded-lg animate-pulse" />
-                </div>
-              ) : isAuthenticated ? (
-                <>
-                  <div className="px-4 py-3 bg-slate-50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-semibold">
+              {/* Auth Section */}
+              <div className="ml-4 pl-4 border-l border-gray-200 flex items-center gap-2">
+                {isLoading ? (
+                  <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
+                ) : isAuthenticated ? (
+                  <div className="relative">
+                    <button
+                      onClick={() => setUserMenuOpen(!userMenuOpen)}
+                      className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
                         {getUserInitials()}
                       </div>
-                      <div>
-                        <p className="font-medium text-slate-800">{user?.name}</p>
-                        <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700 capitalize">
-                          {user?.role}
-                        </span>
-                      </div>
-                    </div>
+                      <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform duration-200 ${
+                        userMenuOpen ? "rotate-180" : ""
+                      }`} />
+                    </button>
+
+                    {/* User Dropdown */}
+                    <AnimatePresence>
+                      {userMenuOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute top-full right-0 pt-4"
+                        >
+                          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 py-2 w-64">
+                            <div className="px-4 py-3 border-b border-gray-100">
+                              <p className="font-medium text-gray-900 text-sm">{user?.name}</p>
+                              <p className="text-xs text-gray-500 mt-0.5 truncate">{user?.email}</p>
+                              <span className="inline-block mt-2 px-2 py-1 text-xs font-medium rounded-full bg-blue-50 text-blue-700 capitalize">
+                                {user?.role}
+                              </span>
+                            </div>
+                            <Link
+                              href={getDashboardLink()}
+                              className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                              onClick={() => setUserMenuOpen(false)}
+                            >
+                              <LayoutDashboard className="w-4 h-4" />
+                              Dashboard
+                            </Link>
+                            <Link
+                              href="/dashboard/settings"
+                              className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                              onClick={() => setUserMenuOpen(false)}
+                            >
+                              <Settings className="w-4 h-4" />
+                              Settings
+                            </Link>
+                            <div className="border-t border-gray-100 mt-1 pt-1">
+                              <button
+                                onClick={() => {
+                                  setUserMenuOpen(false);
+                                  signOut();
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                              >
+                                <LogOut className="w-4 h-4" />
+                                Sign Out
+                              </button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                  <Link
-                    href={getDashboardLink()}
-                    className="flex items-center gap-3 px-4 py-3.5 text-slate-700 hover:bg-slate-50 transition-colors"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      setMobileDropdown(null);
-                    }}
-                  >
-                    <LayoutDashboard className="w-5 h-5 text-slate-400" />
-                    <span className="font-medium">Dashboard</span>
-                  </Link>
-                  <button
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      signOut();
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    <LogOut className="w-5 h-5" />
-                    <span className="font-medium">Sign Out</span>
-                  </button>
-                </>
-              ) : (
-                <div className="px-4 py-3 space-y-2">
-                  <Link
-                    href="/auth/signin"
-                    className="block w-full px-4 py-3 text-center font-medium text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      setMobileDropdown(null);
-                    }}
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    href="/auth/signup"
-                    className="block w-full px-4 py-3 text-center font-medium text-white bg-gradient-to-r from-cyan-500 to-blue-600 rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-colors"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      setMobileDropdown(null);
-                    }}
-                  >
-                    Sign Up
-                  </Link>
-                </div>
-              )}
+                ) : (
+                  <>
+                    <Link
+                      href="/auth/signin"
+                      className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-all"
+                    >
+                      Sign In
+                    </Link>
+                    <Link
+                      href="/auth/signup"
+                      className="px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 transition-all shadow-sm"
+                    >
+                      Sign Up
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
+
+            {/* Mobile menu button - Always visible */}
+            <button
+              type="button"
+              className="lg:hidden p-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-expanded={mobileMenuOpen}
+            >
+              <span className="sr-only">{mobileMenuOpen ? "Close menu" : "Open menu"}</span>
+              {mobileMenuOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
+            </button>
           </div>
-        </div>
-      </nav>
-    </header>
+
+          {/* Mobile menu - Full screen overlay */}
+          <AnimatePresence>
+            {mobileMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+                className="lg:hidden fixed inset-0 top-16 bg-white z-40 overflow-y-auto"
+                style={{ maxHeight: 'calc(100vh - 64px)' }}
+              >
+                <div className="container mx-auto px-4 py-6">
+                  <div className="space-y-1">
+                    {navigation.map((item) => (
+                      <div key={item.name} className="border-b border-gray-100 last:border-b-0">
+                        {item.hasDropdown ? (
+                          <div>
+                            <button
+                              onClick={() => toggleMobileDropdown(item.dropdownType || "")}
+                              className="w-full flex items-center justify-between py-4 text-gray-900 hover:text-blue-600 transition-colors"
+                            >
+                              <span className="font-medium text-base">{item.name}</span>
+                              <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
+                                mobileDropdown === item.dropdownType ? "rotate-180" : ""
+                              }`} />
+                            </button>
+
+                            <AnimatePresence>
+                              {mobileDropdown === item.dropdownType && (
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: "auto" }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="pb-4 space-y-2"
+                                >
+                                  {getDropdownItems(item.dropdownType || "").map((dropItem) => (
+                                    <Link
+                                      key={dropItem.name}
+                                      href={dropItem.href}
+                                      className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all"
+                                      onClick={() => {
+                                        setMobileMenuOpen(false);
+                                        setMobileDropdown(null);
+                                      }}
+                                    >
+                                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${dropItem.gradient} flex items-center justify-center flex-shrink-0`}>
+                                        <dropItem.icon className="w-5 h-5 text-white" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-gray-900 text-sm">
+                                          {dropItem.name}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                          {dropItem.description}
+                                        </p>
+                                      </div>
+                                      <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                    </Link>
+                                  ))}
+                                  
+                                  <Link
+                                    href={item.dropdownType === "services" ? "/services" : "/resources"}
+                                    className="flex items-center justify-between p-3 rounded-xl bg-blue-50 hover:bg-blue-100 transition-all mt-2"
+                                    onClick={() => {
+                                      setMobileMenuOpen(false);
+                                      setMobileDropdown(null);
+                                    }}
+                                  >
+                                    <span className="text-sm font-medium text-blue-700">
+                                      View all {item.dropdownType}
+                                    </span>
+                                    <ArrowRight className="w-4 h-4 text-blue-600" />
+                                  </Link>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        ) : (
+                          <Link
+                            href={item.href}
+                            className="flex items-center justify-between py-4 text-gray-900 hover:text-blue-600 transition-colors"
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            <span className="font-medium text-base">{item.name}</span>
+                            <ChevronRight className="w-5 h-5 text-gray-400" />
+                          </Link>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Mobile Auth Section - Always visible at bottom */}
+                  <div className="mt-8 pt-6 border-t border-gray-200">
+                    {isLoading ? (
+                      <div className="h-12 bg-gray-100 rounded-xl animate-pulse" />
+                    ) : isAuthenticated ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-white font-semibold text-base shadow-sm">
+                            {getUserInitials()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 text-sm truncate">{user?.name}</p>
+                            <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                            <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700 capitalize">
+                              {user?.role}
+                            </span>
+                          </div>
+                        </div>
+                        <Link
+                          href={getDashboardLink()}
+                          className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <LayoutDashboard className="w-5 h-5 text-gray-400" />
+                          <span className="font-medium text-sm">Dashboard</span>
+                        </Link>
+                        <button
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            signOut();
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                        >
+                          <LogOut className="w-5 h-5" />
+                          <span className="font-medium text-sm">Sign Out</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <Link
+                          href="/auth/signin"
+                          className="block w-full px-4 py-3 text-center text-sm font-medium text-gray-700 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          Sign In
+                        </Link>
+                        <Link
+                          href="/auth/signup"
+                          className="block w-full px-4 py-3 text-center text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-colors"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          Create Account
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </nav>
+      </header>
+
+      {/* Spacer to prevent content from hiding under fixed header */}
+      <div className="h-16 md:h-20" />
+    </>
   );
 }

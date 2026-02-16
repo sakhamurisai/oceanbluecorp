@@ -3,20 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import HeroCarousel from "@/components/HeroCarousel";
 import ConsultingShowcase from "@/components/ConsultingShowcase";
-import {
-  FadeUp,
-  FadeIn,
-  StaggerContainer,
-  StaggerItem,
-  SlideInLeft,
-  SlideInRight,
-  ScaleUp,
-  Float,
-  ParallaxSection,
-} from "@/components/animations/ScrollAnimations";
 import {
   ArrowRight,
   Cloud,
@@ -25,320 +14,314 @@ import {
   GraduationCap,
   Cpu,
   BarChart3,
-  CheckCircle2,
   Globe,
   Award,
   Building2,
-  Shield,
-  Zap,
-  HeartHandshake,
-  TrendingUp,
   Star,
   Settings,
   Headphones,
-  Phone,
-  Mail,
-  MapPin,
   Play,
-  Sparkles,
   Factory,
   ShoppingCart,
   Landmark,
   Stethoscope,
   Wallet,
   Monitor,
-  Rocket,
-  Target,
-  Users2,
-  BadgeCheck,
+  ChevronRight,
+  Quote,
+  Compass,
+  Sun,
+  HeartHandshake,
+  Gauge,
+  Feather,
+  Sparkles,
 } from "lucide-react";
+
+// ============================================================================
+// DATA
+// ============================================================================
 
 const services = [
   {
     icon: BarChart3,
     title: "ERP Solutions",
-    description:
-      "SAP & Oracle implementation tailored to streamline your business operations and maximize efficiency.",
-    features: ["SAP S/4HANA", "Oracle Cloud ERP", "Microsoft Dynamics 365"],
+    description: "SAP & Oracle implementation that actually makes sense.",
     href: "/services#erp",
-    color: "from-blue-500 to-indigo-600",
+    gradient: "from-blue-600 to-indigo-600",
+    bgLight: "bg-blue-50",
+    accentPosition: "top-left",
   },
   {
     icon: Cloud,
     title: "Cloud Services",
-    description:
-      "Secure, scalable cloud migration and management solutions on AWS, Azure, and GCP.",
-    features: ["Cloud Migration", "Infrastructure Management", "DevOps"],
+    description: "Migration so smooth you'll forget it happened.",
     href: "/services#cloud",
-    color: "from-cyan-500 to-blue-600",
+    gradient: "from-cyan-600 to-blue-600",
+    bgLight: "bg-cyan-50",
+    accentPosition: "top-right",
   },
   {
     icon: Cpu,
-    title: "Data Analytics & AI",
-    description:
-      "Unlock actionable insights with advanced analytics, machine learning, and AI solutions.",
-    features: ["Machine Learning", "Predictive Analytics", "Business Intelligence"],
+    title: "AI & Analytics",
+    description: "From machine learning to plain English insights.",
     href: "/services#ai",
-    color: "from-violet-500 to-purple-600",
+    gradient: "from-violet-600 to-purple-600",
+    bgLight: "bg-violet-50",
+    accentPosition: "bottom-left",
   },
   {
     icon: Database,
     title: "Salesforce",
-    description:
-      "Transform customer engagement through intelligent Salesforce solutions—smart, simple, effective.",
-    features: ["Sales Cloud", "Service Cloud", "Marketing Cloud"],
+    description: "CRM your team will actually want to use.",
     href: "/services#salesforce",
-    color: "from-sky-500 to-blue-600",
+    gradient: "from-sky-600 to-blue-600",
+    bgLight: "bg-sky-50",
+    accentPosition: "bottom-right",
   },
   {
     icon: Users,
-    title: "Staffing Services",
-    description:
-      "Access top-tier IT talent with our comprehensive staffing solutions for all engagement models.",
-    features: ["Contract Staffing", "Direct Hire", "Managed Teams"],
+    title: "Staffing",
+    description: "Humans who happen to be great at tech.",
     href: "/services#staffing",
-    color: "from-teal-500 to-cyan-600",
+    gradient: "from-teal-600 to-cyan-600",
+    bgLight: "bg-teal-50",
+    accentPosition: "top-left",
   },
   {
     icon: GraduationCap,
-    title: "Training Services",
-    description:
-      "Empower your workforce with industry-leading certification programs and custom training.",
-    features: ["IT Certifications", "Custom Programs", "E-Learning"],
+    title: "Training",
+    description: "Learning that actually sticks. No death by PowerPoint.",
     href: "/services#training",
-    color: "from-amber-500 to-orange-600",
+    gradient: "from-amber-500 to-orange-500",
+    bgLight: "bg-amber-50",
+    accentPosition: "top-right",
   },
   {
     icon: Settings,
     title: "Managed Services",
-    description:
-      "End-to-end IT management and support to keep your business running smoothly 24/7.",
-    features: ["IT Support", "Infrastructure Management", "Security"],
+    description: "We fix things. Sometimes before they break.",
     href: "/services#managed",
-    color: "from-rose-500 to-pink-600",
+    gradient: "from-rose-600 to-pink-600",
+    bgLight: "bg-rose-50",
+    accentPosition: "bottom-left",
   },
   {
     icon: Headphones,
     title: "Outsourcing",
-    description:
-      "Strategic outsourcing solutions to optimize costs and focus on your core business.",
-    features: ["BPO Services", "IT Outsourcing", "Process Optimization"],
+    description: "Global talent, local feel. Smart outsourcing.",
     href: "/services#outsourcing",
-    color: "from-indigo-500 to-blue-600",
+    gradient: "from-indigo-600 to-blue-600",
+    bgLight: "bg-indigo-50",
+    accentPosition: "bottom-right",
   },
 ];
 
 const stats = [
-  { value: 500, suffix: "+", label: "Enterprise Clients", icon: Building2 },
-  { value: 15, suffix: "+", label: "Years of Excellence", icon: Award },
-  { value: 25, suffix: "+", label: "Global Locations", icon: Globe },
-  { value: 98, suffix: "%", label: "Client Satisfaction", icon: Star },
+  { value: "500+", label: "Enterprise clients", icon: Building2, color: "from-blue-600 to-cyan-600" },
+  { value: "15+", label: "Years of experience", icon: Award, color: "from-amber-500 to-orange-500" },
+  { value: "25+", label: "Global locations", icon: Globe, color: "from-emerald-500 to-teal-500" },
+  { value: "98%", label: "Client satisfaction", icon: Star, color: "from-purple-500 to-pink-500" },
 ];
 
 const industries = [
-  {
-    name: "Manufacturing",
-    description: "Smart factory solutions & supply chain optimization",
-    icon: Factory,
-    stats: "150+ Projects",
-    color: "from-blue-500 to-indigo-600",
-    logo: "https://cdn-icons-png.flaticon.com/512/2936/2936690.png",
-  },
-  {
-    name: "Retail",
-    description: "Omnichannel commerce & customer experience",
-    icon: ShoppingCart,
-    stats: "80+ Clients",
-    color: "from-cyan-500 to-blue-600",
-    logo: "https://cdn-icons-png.flaticon.com/512/3081/3081559.png",
-  },
-  {
-    name: "Government",
-    description: "Secure digital transformation & compliance",
-    icon: Landmark,
-    stats: "40+ Agencies",
-    color: "from-indigo-500 to-purple-600",
-    logo: "https://cdn-icons-png.flaticon.com/512/2991/2991231.png",
-  },
-  {
-    name: "Healthcare",
-    description: "Patient care innovation & data analytics",
-    icon: Stethoscope,
-    stats: "60+ Providers",
-    color: "from-teal-500 to-cyan-600",
-    logo: "https://cdn-icons-png.flaticon.com/512/2966/2966327.png",
-  },
-  {
-    name: "Financial Services",
-    description: "Risk management & regulatory compliance",
-    icon: Wallet,
-    stats: "90+ Firms",
-    color: "from-blue-600 to-indigo-700",
-    logo: "https://cdn-icons-png.flaticon.com/512/2830/2830284.png",
-  },
-  {
-    name: "Technology",
-    description: "Scalable infrastructure & innovation",
-    icon: Monitor,
-    stats: "120+ Companies",
-    color: "from-violet-500 to-purple-600",
-    logo: "https://cdn-icons-png.flaticon.com/512/2920/2920244.png",
-  },
+  { name: "Manufacturing", icon: Factory, gradient: "from-blue-600 to-indigo-600", count: "150+", bg: "bg-blue-50" },
+  { name: "Retail", icon: ShoppingCart, gradient: "from-cyan-500 to-blue-500", count: "80+", bg: "bg-cyan-50" },
+  { name: "Government", icon: Landmark, gradient: "from-indigo-500 to-purple-500", count: "40+", bg: "bg-indigo-50" },
+  { name: "Healthcare", icon: Stethoscope, gradient: "from-teal-500 to-cyan-500", count: "60+", bg: "bg-teal-50" },
+  { name: "Financial", icon: Wallet, gradient: "from-amber-500 to-orange-500", count: "90+", bg: "bg-amber-50" },
+  { name: "Technology", icon: Monitor, gradient: "from-violet-500 to-purple-500", count: "120+", bg: "bg-violet-50" },
 ];
 
-const values = [
+const principles = [
   {
-    icon: Star,
-    title: "Your Success, Our Priority",
-    description: "We measure our success by yours, delivering solutions that drive real business outcomes.",
-    color: "from-amber-400 to-orange-500",
+    quote: "We show up. Every time. No excuses.",
+    author: "Mike Chen",
+    role: "Founder",
+    icon: Sun,
+    color: "amber",
+    gradient: "from-amber-500 to-orange-500",
   },
   {
+    quote: "Your win is our win. Simple as that.",
+    author: "Sarah Martinez",
+    role: "Client Success",
     icon: HeartHandshake,
-    title: "Building Lasting Partnerships",
-    description: "We don't just complete projects—we build long-term relationships based on trust.",
-    color: "from-rose-400 to-pink-500",
+    color: "rose",
+    gradient: "from-rose-500 to-pink-500",
   },
   {
-    icon: Shield,
-    title: "Unwavering Customer Support",
-    description: "24/7 dedicated support ensuring your systems run smoothly at all times.",
-    color: "from-blue-400 to-indigo-500",
+    quote: "We fix things. Sometimes before they break.",
+    author: "Alex Thompson",
+    role: "Engineering Lead",
+    icon: Gauge,
+    color: "blue",
+    gradient: "from-blue-500 to-cyan-500",
   },
   {
-    icon: Zap,
-    title: "Innovation & Excellence",
-    description: "Continuously pushing boundaries with cutting-edge technology solutions.",
-    color: "from-cyan-400 to-blue-500",
+    quote: "No jargon. Just humans talking to humans.",
+    author: "Jen Walsh",
+    role: "Sales Director",
+    icon: Feather,
+    color: "cyan",
+    gradient: "from-cyan-500 to-teal-500",
   },
 ];
 
 const testimonials = [
   {
-    quote:
-      "Ocean Blue transformed our entire ERP infrastructure. Their expertise in SAP implementation was instrumental in achieving a 40% improvement in operational efficiency.",
+    quote: "They made SAP implementation feel like a conversation, not a root canal. Highly recommend.",
     author: "Sarah Chen",
-    role: "CTO",
-    company: "TechForward Inc.",
-    avatar: "SC",
+    role: "CTO, TechForward Inc.",
+    gradient: "from-indigo-600 to-purple-600",
+    image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
   },
   {
-    quote:
-      "The Salesforce implementation was seamless. Their team understood our requirements and delivered a solution that exceeded our expectations.",
+    quote: "Finally, a tech partner who speaks both engineer and executive. Pure gold.",
     author: "Michael Rodriguez",
-    role: "VP of Sales",
-    company: "Global Retail Corp",
-    avatar: "MR",
+    role: "VP Operations, Global Retail",
+    gradient: "from-blue-600 to-cyan-600",
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
   },
   {
-    quote:
-      "Their AI and data analytics solutions have given us unprecedented visibility into our operations. The ROI has been phenomenal.",
+    quote: "The ROI was great. The relationship was better. That's rare in this industry.",
     author: "Jennifer Walsh",
-    role: "Director of Operations",
-    company: "Manufacturing Solutions",
-    avatar: "JW",
+    role: "Operations Director, FinServe",
+    gradient: "from-amber-500 to-orange-500",
+    image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop",
   },
 ];
 
 const partners = [
   { name: "SAP", logo: "https://upload.wikimedia.org/wikipedia/commons/5/59/SAP_2011_logo.svg" },
-  { name: "REX Auto Parts", logo: "https://oceanbluecorp.com/storage/images/1717579032.png" },
   { name: "Microsoft", logo: "https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg" },
   { name: "Salesforce", logo: "https://upload.wikimedia.org/wikipedia/commons/f/f9/Salesforce.com_logo.svg" },
   { name: "AWS", logo: "https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg" },
-  { name: "Google Cloud", logo: "https://www.gstatic.com/devrel-devsite/prod/v0e0f589edd85502a40d78d7d0825db8ea5ef3b99ab4070381ee86977c9168730/cloud/images/cloud-logo.svg" },
+  { name: "Google Cloud", logo: "https://upload.wikimedia.org/wikipedia/commons/5/51/Google_Cloud_logo.svg" },
+  { name: "Oracle", logo: "https://upload.wikimedia.org/wikipedia/commons/5/50/Oracle_logo.svg" },
 ];
 
-// Animated Counter Component
-function AnimatedNumber({ value, suffix = "" }: { value: number; suffix?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
+// ============================================================================
+// COMPONENTS
+// ============================================================================
 
-  return (
+const FloatingOrb = ({ className = "", delay = 0 }: { className?: string; delay?: number }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.8 }}
+    animate={{ opacity: 0.15, scale: 1 }}
+    transition={{ duration: 1.5, delay }}
+    className={`absolute rounded-full blur-3xl pointer-events-none ${className}`}
+  />
+);
+
+const SectionHeader = ({
+  eyebrow,
+  title,
+  highlight,
+  description,
+  centered = true,
+  highlightGradient = "from-blue-600 to-cyan-600",
+}: {
+  eyebrow: string;
+  title: string;
+  highlight: string;
+  description?: string;
+  centered?: boolean;
+  highlightGradient?: string;
+}) => (
+  <div className={`max-w-3xl ${centered ? "mx-auto text-center" : ""} mb-16 md:mb-20`}>
     <motion.span
-      ref={ref}
-      initial={{ opacity: 0 }}
-      whileInView={{ opacity: 1 }}
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className="tabular-nums"
+      className="text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-[0.2em] mb-4 block"
     >
-      <motion.span
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        onViewportEnter={() => {
-          if (ref.current) {
-            let start = 0;
-            const end = value;
-            const duration = 2000;
-            const increment = end / (duration / 16);
-            const timer = setInterval(() => {
-              start += increment;
-              if (start >= end) {
-                clearInterval(timer);
-                if (ref.current) ref.current.textContent = `${end}${suffix}`;
-              } else {
-                if (ref.current) ref.current.textContent = `${Math.floor(start)}${suffix}`;
-              }
-            }, 16);
-          }
-        }}
-      >
-        0{suffix}
-      </motion.span>
+      {eyebrow}
     </motion.span>
-  );
-}
+
+    <motion.h2
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: 0.1 }}
+      className="heading-section text-gray-900 mb-6"
+    >
+      {title}{" "}
+      <span className="relative inline-block">
+        <span className={`relative z-10 bg-gradient-to-r ${highlightGradient} bg-clip-text text-transparent font-medium`}>
+          {highlight}
+        </span>
+        <motion.span
+          initial={{ scaleX: 0 }}
+          whileInView={{ scaleX: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className={`absolute -bottom-1 left-0 right-0 h-3 bg-gradient-to-r ${highlightGradient.replace('600', '200').replace('500', '200')} opacity-40 -z-0 rounded-full`}
+          style={{ originX: 0 }}
+        />
+      </span>
+    </motion.h2>
+
+    {description && (
+      <motion.p
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ delay: 0.2 }}
+        className="text-gray-500 text-lg leading-relaxed"
+      >
+        {description}
+      </motion.p>
+    )}
+  </div>
+);
+
+// ============================================================================
+// MAIN PAGE
+// ============================================================================
 
 export default function Home() {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+  const ctaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
 
   return (
-    <div ref={containerRef} className="overflow-x-hidden">
-      {/* Hero Carousel */}
-      <section>
-        <HeroCarousel />
-      </section>
+    <div className="bg-white relative overflow-hidden">
+      {/* Hero */}
+      <HeroCarousel />
 
-      {/* Partners Section - Compact */}
-      <section className="py-12 md:py-14 bg-[#0a192f] relative overflow-hidden">
-        <div className="container-custom relative z-10">
-          <FadeUp>
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
-              <div className="text-center md:text-left">
-                <p className="text-blue-300/80 font-medium text-sm uppercase tracking-wider">
-                  Trusted by Industry Leaders
-                </p>
-              </div>
+      {/* Partners Marquee */}
+      <section className="relative py-12 md:py-16 overflow-hidden border-y border-gray-100 bg-white">
+        {/* Fade edges */}
+        <div className="absolute inset-y-0 left-0 w-24 md:w-40 bg-gradient-to-r from-white via-white to-transparent z-10 pointer-events-none" />
+        <div className="absolute inset-y-0 right-0 w-24 md:w-40 bg-gradient-to-l from-white via-white to-transparent z-10 pointer-events-none" />
 
-              {/* Partner Logos - Scrolling */}
-              <div className="relative flex-1 w-full overflow-hidden">
-                <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-[#0a192f] to-transparent z-10" />
-                <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-[#0a192f] to-transparent z-10" />
-                <motion.div
-                  animate={{ x: ["0%", "-50%"] }}
-                  transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                  className="flex items-center gap-12 md:gap-16"
-                >
-                  {[...partners, ...partners].map((partner, index) => (
-                    <motion.div
-                      key={`${partner.name}-${index}`}
-                      whileHover={{ scale: 1.1 }}
-                      className="flex-shrink-0"
-                    >
-                      <Image
-                        src={partner.logo}
-                        alt={partner.name}
-                        width={120}
-                        height={40}
-                        className="h-7 md:h-9 w-auto object-contain filter brightness-0 invert opacity-50 hover:opacity-90 transition-all"
-                        unoptimized
-                      />
-                    </motion.div>
-                  ))}
-                </motion.div>
+        <div className="flex items-center overflow-hidden">
+          <motion.div
+            animate={{ x: ["0%", "-50%"] }}
+            transition={{ duration: 50, repeat: Infinity, ease: "linear" }}
+            className="flex items-center gap-12 md:gap-20 whitespace-nowrap"
+          >
+            {[...partners, ...partners, ...partners, ...partners].map((partner, index) => (
+              <div
+                key={index}
+                className="flex-shrink-0 flex items-center justify-center h-8 md:h-10 w-24 md:w-32"
+              >
+                <Image
+                  src={partner.logo}
+                  alt={partner.name}
+                  width={120}
+                  height={40}
+                  className="h-6 md:h-8 w-auto object-contain opacity-30 hover:opacity-60 transition-all duration-300 grayscale hover:grayscale-0"
+                  unoptimized
+                />
               </div>
-            </div>
-          </FadeUp>
+            ))}
+          </motion.div>
         </div>
       </section>
 
@@ -346,640 +329,468 @@ export default function Home() {
       <ConsultingShowcase />
 
       {/* Services Section */}
-      <section className="section-padding bg-gradient-to-br from-[#0a192f] via-[#0f2847] to-[#0a192f] relative overflow-hidden" id="services">
-        {/* Animated Background */}
-        <div className="absolute inset-0">
-          <motion.div
-            animate={{
-              scale: [1, 1.3, 1],
-              opacity: [0.1, 0.2, 0.1],
-              x: [-50, 50, -50],
-            }}
-            transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute top-0 left-1/4 w-[400px] md:w-[600px] h-[400px] md:h-[600px] bg-blue-500 rounded-full blur-[120px]"
-          />
-          <motion.div
-            animate={{
-              scale: [1.2, 1, 1.2],
-              opacity: [0.1, 0.2, 0.1],
-              x: [50, -50, 50],
-            }}
-            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-            className="absolute bottom-0 right-1/4 w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-cyan-500 rounded-full blur-[100px]"
-          />
-          {/* Grid Pattern */}
-          <div className="absolute inset-0 opacity-[0.03]" style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px',
-          }} />
-        </div>
+      <section className="py-20 md:py-24 lg:py-32 bg-white relative overflow-hidden" id="services">
+        {/* Background decorations */}
+        <FloatingOrb className="top-20 -left-20 w-[500px] h-[500px] bg-blue-200" delay={0.1} />
+        <FloatingOrb className="bottom-20 -right-20 w-[400px] h-[400px] bg-cyan-200" delay={0.2} />
 
-        <div className="container-custom relative z-10">
-          <FadeUp>
-            <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 backdrop-blur-sm rounded-full border border-cyan-500/30 mb-6"
-              >
-                <Rocket className="w-4 h-4 text-cyan-400" />
-                <span className="text-sm font-semibold text-cyan-300">Our Services</span>
-              </motion.div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6">
-                Comprehensive IT Solutions for{" "}
-                <span className="relative">
-                  <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                    Modern Enterprises
-                  </span>
-                  <motion.span
-                    initial={{ scaleX: 0 }}
-                    whileInView={{ scaleX: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.8, delay: 0.5 }}
-                    className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full origin-left"
-                  />
-                </span>
-              </h2>
-              <p className="text-lg text-blue-200/70 leading-relaxed">
-                From legacy system modernization to cutting-edge AI implementation,
-                we provide end-to-end solutions that drive business growth.
-              </p>
-            </div>
-          </FadeUp>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          {/* Decorative corners */}
+          <div className="relative mb-16 md:mb-20">
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="absolute -top-8 left-0 w-24 h-24 md:w-32 md:h-32 border-l-2 border-t-2 border-gray-200 rounded-tl-3xl hidden sm:block"
+            />
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="absolute -bottom-8 right-0 w-24 h-24 md:w-32 md:h-32 border-r-2 border-b-2 border-gray-200 rounded-br-3xl hidden sm:block"
+            />
 
-          <StaggerContainer staggerDelay={0.08} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
-            {services.map((service, index) => (
-              <StaggerItem key={service.title}>
+            <SectionHeader
+              eyebrow="What we do"
+              title="Things we're"
+              highlight="ridiculously good at"
+              highlightGradient="from-blue-600 to-cyan-600"
+            />
+          </div>
+
+          {/* Services Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            {services.map((service, index) => {
+              const Icon = service.icon;
+              const accentClasses = {
+                "top-left": "top-0 left-0 rounded-tl-3xl",
+                "top-right": "top-0 right-0 rounded-tr-3xl",
+                "bottom-left": "bottom-0 left-0 rounded-bl-3xl",
+                "bottom-right": "bottom-0 right-0 rounded-br-3xl",
+              };
+
+              return (
                 <motion.div
-                  whileHover={{ y: -10, transition: { duration: 0.3 } }}
-                  className="h-full"
+                  key={service.title}
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.08 }}
+                  className="group"
                 >
-                  <Link
-                    href={service.href}
-                    className="group relative bg-white/[0.03] backdrop-blur-sm rounded-2xl border border-white/10 p-6 hover:bg-white/[0.08] hover:border-cyan-500/40 transition-all duration-500 overflow-hidden flex flex-col h-full"
-                  >
-                    {/* Hover Gradient */}
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      whileHover={{ opacity: 1, scale: 1 }}
-                      className={`absolute inset-0 bg-gradient-to-br ${service.color} opacity-5 rounded-2xl`}
-                    />
+                  <Link href={service.href}>
+                    <div className="relative h-full bg-white rounded-3xl p-6 md:p-8 border border-gray-100 hover:border-gray-200 transition-all duration-300 card-lift overflow-hidden">
+                      {/* Corner accent */}
+                      <div
+                        className={`absolute ${accentClasses[service.accentPosition as keyof typeof accentClasses]} w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br ${service.gradient} opacity-[0.06] group-hover:opacity-[0.1] transition-opacity`}
+                      />
 
-                    {/* Glow Effect */}
-                    <div className={`absolute -inset-px bg-gradient-to-br ${service.color} opacity-0 group-hover:opacity-20 rounded-2xl blur-xl transition-opacity duration-500`} />
+                      {/* Icon */}
+                      <div className="relative mb-5 md:mb-6">
+                        <div
+                          className={`absolute -inset-2 bg-gradient-to-br ${service.gradient} opacity-10 rounded-2xl blur-xl group-hover:opacity-20 transition-opacity`}
+                        />
+                        <div
+                          className={`relative w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br ${service.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}
+                        >
+                          <Icon className="w-6 h-6 md:w-7 md:h-7 text-white" />
+                        </div>
+                      </div>
 
-                    {/* Number */}
-                    <div className="absolute top-4 right-4">
-                      <span className="text-sm font-bold text-white/20 group-hover:text-cyan-400/50 transition-colors">
-                        {String(index + 1).padStart(2, '0')}
-                      </span>
-                    </div>
-
-                    <div className="relative z-10 flex-1">
-                      <motion.div
-                        whileHover={{ scale: 1.1, rotate: 5 }}
-                        transition={{ type: "spring", stiffness: 300 }}
-                        className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${service.color} flex items-center justify-center mb-5 shadow-lg shadow-black/20`}
-                      >
-                        <service.icon className="w-7 h-7 text-white" />
-                      </motion.div>
-
-                      <h3 className="text-lg font-bold text-white mb-3 group-hover:text-cyan-300 transition-colors">
+                      {/* Content */}
+                      <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-2 md:mb-3 group-hover:text-blue-600 transition-colors">
                         {service.title}
                       </h3>
-
-                      <p className="text-blue-200/60 text-sm mb-4 leading-relaxed line-clamp-2">
+                      <p className="text-gray-500 text-sm md:text-base leading-relaxed mb-4 md:mb-6">
                         {service.description}
                       </p>
 
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {service.features.slice(0, 2).map((feature) => (
-                          <span key={feature} className="px-2.5 py-1 bg-white/5 rounded-lg text-xs text-blue-200/70 border border-white/5">
-                            {feature}
-                          </span>
-                        ))}
+                      {/* Link */}
+                      <div className="flex items-center gap-2 text-blue-600 font-medium text-sm">
+                        <span>Learn more</span>
+                        <div className="w-5 h-5 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-2 text-cyan-400 font-medium text-sm group-hover:gap-3 transition-all mt-auto">
-                        Explore Service
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                      </div>
+                      {/* Hover gradient overlay */}
+                      <div
+                        className={`absolute inset-0 bg-gradient-to-br ${service.gradient} opacity-0 group-hover:opacity-[0.02] transition-opacity duration-500 pointer-events-none rounded-3xl`}
+                      />
                     </div>
                   </Link>
                 </motion.div>
-              </StaggerItem>
-            ))}
-          </StaggerContainer>
-
-          <FadeUp delay={0.4}>
-            <div className="text-center mt-12">
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Link
-                  href="/services"
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-xl hover:from-cyan-400 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/25"
-                >
-                  View All Services
-                  <ArrowRight className="w-5 h-5" />
-                </Link>
-              </motion.div>
-            </div>
-          </FadeUp>
-        </div>
-      </section>
-
-      {/* Why Choose Us Section */}
-      <section className="section-padding bg-gray-50 relative overflow-hidden">
-        <div className="container-custom relative z-10">
-          <FadeUp>
-            <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full mb-6"
-              >
-                <Target className="w-4 h-4" />
-                <span className="text-sm font-semibold">Why Ocean Blue</span>
-              </motion.div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
-                Your Trusted Partner for{" "}
-                <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                  Digital Excellence
-                </span>
-              </h2>
-              <p className="text-lg text-gray-600 leading-relaxed">
-                Specializing in ERP, staffing, and Salesforce expertise for Manufacturing,
-                Retail, and Government sectors.
-              </p>
-            </div>
-          </FadeUp>
-
-          <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
-            {/* Values Grid */}
-            <div className="lg:col-span-2 grid sm:grid-cols-2 gap-4 md:gap-5">
-              {values.map((value, index) => (
-                <FadeUp key={value.title} delay={index * 0.1}>
-                  <motion.div
-                    whileHover={{ y: -5 }}
-                    transition={{ type: "spring", stiffness: 300 }}
-                    className="group bg-white rounded-xl p-5 md:p-6 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${value.color} flex items-center justify-center flex-shrink-0`}>
-                        <value.icon className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-gray-900 mb-1.5 text-base md:text-lg group-hover:text-blue-700 transition-colors">
-                          {value.title}
-                        </h4>
-                        <p className="text-gray-600 text-sm leading-relaxed">
-                          {value.description}
-                        </p>
-                      </div>
-                    </div>
-                  </motion.div>
-                </FadeUp>
-              ))}
-            </div>
-
-            {/* Stats Card */}
-            <SlideInRight delay={0.3}>
-              <div className="bg-gradient-to-br from-[#0a192f] to-[#112240] rounded-2xl p-6 md:p-8 text-white h-full">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <p className="text-sm text-blue-300/70 mb-1">Project Success Rate</p>
-                    <motion.p
-                      initial={{ opacity: 0, scale: 0.5 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      viewport={{ once: true }}
-                      className="text-4xl md:text-5xl font-bold text-white"
-                    >
-                      98.7%
-                    </motion.p>
-                  </div>
-                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-                    <CheckCircle2 className="w-7 h-7 text-white" />
-                  </div>
-                </div>
-
-                <div className="space-y-4 mb-6">
-                  {[
-                    { label: "ERP Implementations", value: 95 },
-                    { label: "Salesforce Projects", value: 99 },
-                    { label: "Cloud Migrations", value: 97 },
-                  ].map((item, index) => (
-                    <motion.div
-                      key={item.label}
-                      initial={{ opacity: 0, x: -20 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.5 + index * 0.1 }}
-                    >
-                      <div className="flex justify-between mb-1.5">
-                        <span className="text-sm text-blue-200/80">{item.label}</span>
-                        <span className="text-sm font-semibold text-cyan-400">{item.value}%</span>
-                      </div>
-                      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          whileInView={{ width: `${item.value}%` }}
-                          viewport={{ once: true }}
-                          transition={{ duration: 1, delay: 0.8 + index * 0.1 }}
-                          className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full"
-                        />
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-
-                <Link
-                  href="/contact"
-                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3.5 bg-white text-gray-900 font-semibold rounded-xl hover:bg-gray-100 transition-colors"
-                >
-                  Start Your Project
-                  <ArrowRight className="w-5 h-5" />
-                </Link>
-              </div>
-            </SlideInRight>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-20 md:py-24 bg-gradient-to-r from-[#0a192f] via-[#112240] to-[#0a192f] text-white relative overflow-hidden">
-        {/* Animated Background */}
+      {/* Stats & Philosophy Section */}
+      <section className="relative py-20 md:py-24 lg:py-32 overflow-hidden">
+        {/* Diagonal background */}
         <div className="absolute inset-0">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 100, repeat: Infinity, ease: "linear" }}
-            className="absolute -top-1/2 -right-1/2 w-full h-full border border-cyan-500/10 rounded-full"
-          />
-          <motion.div
-            animate={{ rotate: -360 }}
-            transition={{ duration: 80, repeat: Infinity, ease: "linear" }}
-            className="absolute -bottom-1/2 -left-1/2 w-full h-full border border-blue-500/10 rounded-full"
-          />
-          {/* Floating Particles */}
-          {[...Array(8)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-1 h-1 bg-cyan-400/40 rounded-full"
-              style={{
-                left: `${10 + i * 12}%`,
-                top: `${20 + (i % 4) * 20}%`,
-              }}
-              animate={{
-                y: [-30, 30, -30],
-                opacity: [0.2, 0.6, 0.2],
-              }}
-              transition={{
-                duration: 4 + i,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: i * 0.3,
-              }}
-            />
-          ))}
+          <div className="absolute inset-0 bg-gray-50 transform -skew-y-2 origin-top-left scale-110" />
         </div>
 
-        <div className="container-custom relative z-10">
-          <StaggerContainer staggerDelay={0.15} className="grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
-            {stats.map((stat, index) => (
-              <StaggerItem key={stat.label}>
-                <motion.div
-                  whileHover={{ y: -8, scale: 1.05 }}
-                  className="text-center group"
-                >
-                  <Float duration={4 + index} y={10}>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+            {/* Stats - Left side */}
+            <div>
+              <motion.div
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                className="mb-6"
+              >
+                <span className="text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-[0.2em]">
+                  By the numbers
+                </span>
+              </motion.div>
+
+              <motion.h2
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="heading-section text-gray-900 mb-10 md:mb-12"
+              >
+                We keep
+                <br />
+                <span className="relative inline-block">
+                  <span className="relative z-10 bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent font-medium">
+                    score
+                  </span>
+                  <motion.span
+                    initial={{ width: 0 }}
+                    whileInView={{ width: "100%" }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: 0.3 }}
+                    className="absolute -bottom-1 left-0 h-3 bg-gradient-to-r from-amber-200 to-orange-200 opacity-50 -z-0 rounded-full"
+                  />
+                </span>
+              </motion.h2>
+
+              <div className="space-y-6 md:space-y-8">
+                {stats.map((stat, index) => {
+                  const Icon = stat.icon;
+                  return (
                     <motion.div
-                      whileHover={{ rotate: 10 }}
-                      className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-5 border border-cyan-500/20 group-hover:border-cyan-400/40 transition-colors"
+                      key={stat.label}
+                      initial={{ opacity: 0, x: -30 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.2 + index * 0.1 }}
+                      className="flex items-center gap-5 md:gap-6 group"
                     >
-                      <stat.icon className="w-10 h-10 md:w-12 md:h-12 text-cyan-400" />
+                      <div
+                        className={`w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:shadow-xl transition-all duration-300`}
+                      >
+                        <Icon className="w-7 h-7 md:w-8 md:h-8 text-white" />
+                      </div>
+                      <div>
+                        <div className="text-2xl md:text-3xl font-light text-gray-900 mb-0.5 font-[family-name:var(--font-space-grotesk)]">
+                          {stat.value}
+                        </div>
+                        <div className="text-sm text-gray-500">{stat.label}</div>
+                      </div>
                     </motion.div>
-                  </Float>
-                  <p className="text-4xl md:text-5xl lg:text-6xl font-bold mb-2 bg-gradient-to-r from-white to-cyan-200 bg-clip-text text-transparent">
-                    <AnimatedNumber value={stat.value} suffix={stat.suffix} />
-                  </p>
-                  <p className="text-blue-200/70 text-sm md:text-base">{stat.label}</p>
-                </motion.div>
-              </StaggerItem>
-            ))}
-          </StaggerContainer>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Philosophy - Right side */}
+            <div>
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                className="mb-6"
+              >
+                <span className="text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-[0.2em]">
+                  Our philosophy
+                </span>
+              </motion.div>
+
+              <motion.h2
+                initial={{ opacity: 0, x: 30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="heading-section text-gray-900 mb-10 md:mb-12"
+              >
+                What we
+                <br />
+                <span className="relative inline-block">
+                  <span className="relative z-10 bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent font-medium">
+                    believe
+                  </span>
+                  <motion.span
+                    initial={{ width: 0 }}
+                    whileInView={{ width: "100%" }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: 0.3 }}
+                    className="absolute -bottom-1 left-0 h-3 bg-gradient-to-r from-blue-200 to-cyan-200 opacity-50 -z-0 rounded-full"
+                  />
+                </span>
+              </motion.h2>
+
+              <div className="space-y-3 md:space-y-4">
+                {principles.map((item, index) => {
+                  const Icon = item.icon;
+                  return (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: 30 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.2 + index * 0.1 }}
+                      className="relative bg-white rounded-2xl p-5 md:p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 group"
+                    >
+                      <div className="flex gap-4">
+                        <div
+                          className={`w-11 h-11 md:w-12 md:h-12 rounded-xl bg-gradient-to-br ${item.gradient} flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform`}
+                        >
+                          <Icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-gray-800 text-base md:text-lg mb-2 leading-relaxed">
+                            "{item.quote}"
+                          </p>
+                          <p className="text-sm text-gray-400">
+                            {item.author} <span className="text-gray-300">•</span> {item.role}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Industries Section */}
-      <section className="section-padding bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-32 " />
+      <section className="py-20 md:py-24 lg:py-32 bg-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionHeader
+            eyebrow="Where we work"
+            title="Industries we've"
+            highlight="transformed"
+            highlightGradient="from-blue-600 to-cyan-600"
+          />
 
-        <div className="container-custom relative z-10 pt-16">
-          <FadeUp>
-            <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 rounded-full mb-6"
-              >
-                <Globe className="w-4 h-4 text-blue-600" />
-                <span className="text-sm font-semibold text-blue-700">Industries We Serve</span>
-              </motion.div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
-                Deep Expertise Across{" "}
-                <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                  Key Sectors
-                </span>
-              </h2>
-              <p className="text-lg text-gray-600 leading-relaxed">
-                Industry-specific solutions built on deep domain knowledge and proven
-                methodologies that address your unique challenges.
-              </p>
-            </div>
-          </FadeUp>
-
-          <StaggerContainer staggerDelay={0.1} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {industries.map((industry, index) => (
-              <StaggerItem key={industry.name}>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+            {industries.map((industry, index) => {
+              const Icon = industry.icon;
+              return (
                 <motion.div
-                  whileHover={{ y: -10, scale: 1.02 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                  className="group relative bg-white rounded-2xl p-6 md:p-8 shadow-lg shadow-gray-200/50 hover:shadow-xl hover:shadow-blue-200/50 border border-gray-100 hover:border-blue-200 transition-all duration-300 overflow-hidden cursor-pointer"
+                  key={industry.name}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.05 }}
+                  className="group cursor-pointer"
                 >
-                  {/* Hover Gradient */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${industry.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
+                  <div className="relative bg-gray-50 rounded-2xl p-5 md:p-6 text-center hover:bg-white transition-all duration-300 card-lift border border-transparent hover:border-gray-100">
+                    {/* Hover gradient */}
+                    <div
+                      className={`absolute inset-0 bg-gradient-to-br ${industry.gradient} opacity-0 group-hover:opacity-[0.04] rounded-2xl transition-opacity duration-300`}
+                    />
 
-                  <div className="relative z-10">
-                    <div className="flex items-start justify-between mb-6">
-                      <motion.div
-                        whileHover={{ scale: 1.1, rotate: 5 }}
-                        className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${industry.color} flex items-center justify-center shadow-lg p-3`}
-                      >
-                        <Image
-                          src={industry.logo}
-                          alt={industry.name}
-                          width={40}
-                          height={40}
-                          className="w-10 h-10 object-contain filter brightness-0 invert"
-                          unoptimized
-                        />
-                      </motion.div>
-                      <span className="px-3 py-1.5 bg-blue-50 rounded-full text-xs font-semibold text-blue-700 group-hover:bg-blue-100 transition-colors">
-                        {industry.stats}
-                      </span>
+                    <div
+                      className={`w-14 h-14 md:w-16 md:h-16 mx-auto mb-3 rounded-xl ${industry.bg} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}
+                    >
+                      <div className={`w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br ${industry.gradient} rounded-lg flex items-center justify-center`}>
+                        <Icon className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                      </div>
                     </div>
 
-                    <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-700 transition-colors">
+                    <h3 className="font-medium text-gray-900 mb-1 text-sm md:text-base">
                       {industry.name}
                     </h3>
 
-                    <p className="text-gray-600 text-sm leading-relaxed mb-6">
-                      {industry.description}
+                    <p className="text-xs text-gray-400">
+                      {industry.count} projects
                     </p>
 
-                    <div className="flex items-center gap-2 text-blue-600 font-medium text-sm group-hover:gap-3 transition-all">
-                      Explore Solutions
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    {/* Chevron on hover */}
+                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ChevronRight className="w-4 h-4 text-gray-300" />
                     </div>
                   </div>
                 </motion.div>
-              </StaggerItem>
-            ))}
-          </StaggerContainer>
-
-          {/* Bottom Stats */}
-          <FadeUp delay={0.4}>
-            <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8">
-              {[
-                { value: "6+", label: "Industries Served", icon: Globe },
-                { value: "500+", label: "Successful Projects", icon: CheckCircle2 },
-                { value: "15+", label: "Years Experience", icon: Award },
-                { value: "98%", label: "Client Satisfaction", icon: Star },
-              ].map((stat, index) => (
-                <motion.div
-                  key={stat.label}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  whileHover={{ y: -5 }}
-                  className="text-center group"
-                >
-                  <motion.div
-                    whileHover={{ scale: 1.1 }}
-                    className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-200 transition-colors"
-                  >
-                    <stat.icon className="w-6 h-6 text-blue-600" />
-                  </motion.div>
-                  <p className="text-3xl md:text-4xl font-bold text-gray-900 mb-1">
-                    {stat.value}
-                  </p>
-                  <p className="text-gray-600 text-sm">{stat.label}</p>
-                </motion.div>
-              ))}
-            </div>
-          </FadeUp>
+              );
+            })}
+          </div>
         </div>
       </section>
 
       {/* Testimonials Section */}
-      <section className="section-padding bg-gradient-to-b from-white to-blue-50/50 relative overflow-hidden">
-        <div className="container-custom relative z-10">
-          <FadeUp>
-            <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 rounded-full mb-6"
-              >
-                <Users2 className="w-4 h-4 text-blue-600" />
-                <span className="text-sm font-semibold text-blue-700">Client Success Stories</span>
-              </motion.div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
-                Trusted by{" "}
-                <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                  Industry Leaders
-                </span>
-              </h2>
-              <p className="text-lg text-gray-600 leading-relaxed">
-                See what our clients say about their transformational journey with Ocean Blue.
-              </p>
-            </div>
-          </FadeUp>
+      <section className="py-20 md:py-24 lg:py-32 bg-gray-50 overflow-hidden">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionHeader
+            eyebrow="Client love"
+            title="People seem to"
+            highlight="like us"
+            highlightGradient="from-indigo-600 to-purple-600"
+          />
 
-          <StaggerContainer staggerDelay={0.15} className="grid md:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid md:grid-cols-3 gap-5 md:gap-6 perspective">
             {testimonials.map((testimonial, index) => (
-              <StaggerItem key={index}>
-                <motion.div
-                  whileHover={{ y: -8, scale: 1.02 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                  className="bg-white rounded-2xl p-8 shadow-lg shadow-gray-200/50 hover:shadow-xl hover:shadow-blue-200/50 border border-gray-100 relative h-full"
-                >
-                  {/* Quote Mark */}
-                  <div className="absolute top-6 right-6 text-6xl text-blue-100 font-serif leading-none">&ldquo;</div>
-
-                  {/* Stars */}
-                  <div className="flex gap-1 mb-6">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, scale: 0 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: 0.3 + i * 0.1 }}
-                      >
-                        <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
-                      </motion.div>
-                    ))}
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 30, rotateX: 10 }}
+                whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="group preserve-3d"
+              >
+                <div className="relative bg-white rounded-2xl p-6 md:p-8 shadow-sm hover:shadow-xl transition-all duration-400 border border-gray-100 tilt-card">
+                  {/* Background quote mark */}
+                  <div className="absolute top-4 right-4 md:top-6 md:right-6">
+                    <Quote className="w-10 h-10 md:w-12 md:h-12 text-gray-100" />
                   </div>
 
-                  <blockquote className="text-gray-700 mb-8 leading-relaxed relative z-10">
-                    &ldquo;{testimonial.quote}&rdquo;
-                  </blockquote>
+                  {/* Content */}
+                  <div className="relative z-10">
+                    <p className="text-gray-700 text-sm md:text-base mb-6 leading-relaxed">
+                      "{testimonial.quote}"
+                    </p>
 
-                  <div className="flex items-center gap-4">
-                    <motion.div
-                      whileHover={{ scale: 1.1 }}
-                      className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white font-bold shadow-lg"
-                    >
-                      {testimonial.avatar}
-                    </motion.div>
-                    <div>
-                      <p className="font-semibold text-gray-900">{testimonial.author}</p>
-                      <p className="text-sm text-gray-500">
-                        {testimonial.role}, {testimonial.company}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden">
+                        <Image
+                          src={testimonial.image}
+                          alt={testimonial.author}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 text-sm md:text-base">
+                          {testimonial.author}
+                        </p>
+                        <p className="text-xs md:text-sm text-gray-400">{testimonial.role}</p>
+                      </div>
                     </div>
+
+                    {/* Gradient accent corner */}
+                    <div
+                      className={`absolute bottom-0 right-0 w-24 h-24 md:w-32 md:h-32 bg-gradient-to-br ${testimonial.gradient} opacity-[0.04] rounded-bl-[100px] pointer-events-none`}
+                    />
                   </div>
-                </motion.div>
-              </StaggerItem>
+                </div>
+              </motion.div>
             ))}
-          </StaggerContainer>
+          </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="section-padding bg-gradient-to-br from-[#0a192f] via-[#112240] to-[#0a192f] text-white relative overflow-hidden">
-        {/* Animated Background */}
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.2, 0.3, 0.2],
-          }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-cyan-500/30 to-blue-500/30 rounded-full blur-[120px]"
-        />
+      <section ref={ctaRef} className="relative py-24 md:py-32 lg:py-40 overflow-hidden">
+        {/* Layered dark background */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900" />
 
-        {/* Floating Elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          {[...Array(6)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-2 h-2 bg-cyan-400/30 rounded-full"
-              style={{
-                left: `${15 + i * 15}%`,
-                top: `${20 + (i % 3) * 25}%`,
-              }}
-              animate={{
-                y: [-30, 30, -30],
-                x: [-15, 15, -15],
-                opacity: [0.2, 0.5, 0.2],
-              }}
-              transition={{
-                duration: 5 + i,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: i * 0.4,
-              }}
-            />
-          ))}
+          {/* Animated orbs */}
+          <motion.div
+            animate={{
+              scale: [1, 1.2, 1],
+              x: [0, 20, 0],
+              y: [0, -20, 0],
+            }}
+            transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute -top-20 -right-20 w-60 h-60 md:w-80 md:h-80 bg-blue-500/15 rounded-full blur-3xl"
+          />
+          <motion.div
+            animate={{
+              scale: [1.2, 1, 1.2],
+              x: [0, -20, 0],
+              y: [0, 20, 0],
+            }}
+            transition={{ duration: 25, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+            className="absolute -bottom-20 -left-20 w-60 h-60 md:w-80 md:h-80 bg-cyan-500/15 rounded-full blur-3xl"
+          />
+          <motion.div
+            animate={{
+              scale: [1, 1.3, 1],
+              rotate: [0, 10, 0],
+            }}
+            transition={{ duration: 30, repeat: Infinity, ease: "easeInOut", delay: 5 }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"
+          />
+
+          {/* Subtle grid pattern */}
+          <div
+            className="absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage: `linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)`,
+              backgroundSize: "60px 60px",
+            }}
+          />
         </div>
 
-        <div className="container-custom relative z-10">
-          <FadeUp>
-            <div className="max-w-4xl mx-auto text-center">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="max-w-3xl mx-auto text-center"
+          >
+            {/* Animated compass icon */}
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              whileInView={{ scale: 1, rotate: 0 }}
+              viewport={{ once: true }}
+              transition={{ type: "spring", stiffness: 200, damping: 15 }}
+              className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-8 md:mb-10 rounded-2xl md:rounded-3xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-2xl"
+            >
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                className="mb-8"
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
               >
-                <Float duration={4} y={12}>
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center mx-auto shadow-lg shadow-cyan-500/30">
-                    <Sparkles className="w-10 h-10 text-white" />
-                  </div>
-                </Float>
+                <Compass className="w-8 h-8 md:w-10 md:h-10 text-white" />
               </motion.div>
+            </motion.div>
 
-              <h2 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-6">
-                Ready to{" "}
-                <span className="bg-gradient-to-r from-cyan-400 to-white bg-clip-text text-transparent">
-                  Transform
-                </span>{" "}
-                Your Business?
-              </h2>
-              <p className="text-xl text-blue-200/70 mb-10 leading-relaxed max-w-2xl mx-auto">
-                Join 500+ enterprises that have accelerated their digital transformation
-                with Ocean Blue. Let&apos;s discuss how we can help you achieve your business goals.
-              </p>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light text-white mb-5 md:mb-6 font-[family-name:var(--font-space-grotesk)] leading-tight">
+              Ready to stop
+              <br />
+              <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-cyan-300 bg-clip-text text-transparent font-medium">
+                worrying about tech?
+              </span>
+            </h2>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Link
-                    href="/contact"
-                    className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-xl hover:from-cyan-400 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/30"
-                  >
-                    Schedule a Consultation
-                    <ArrowRight className="w-5 h-5" />
-                  </Link>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Link
-                    href="/services"
-                    className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/30 text-white font-semibold rounded-xl hover:bg-white/20 hover:border-white/50 transition-all"
-                  >
-                    <Play className="w-5 h-5" />
-                    Watch Demo
-                  </Link>
-                </motion.div>
-              </div>
+            <p className="text-base md:text-lg text-white/50 mb-10 md:mb-12 max-w-2xl mx-auto leading-relaxed">
+              Let's talk. No pressure, no jargon, just humans having a conversation about your goals.
+            </p>
 
-              {/* Contact Info */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.3 }}
-                className="flex flex-wrap justify-center gap-6 md:gap-10 text-blue-200/70"
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/contact"
+                className="group relative px-7 md:px-8 py-3.5 md:py-4 bg-white text-gray-900 rounded-full hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl overflow-hidden"
               >
-                <motion.a
-                  href="tel:+16148446925"
-                  whileHover={{ scale: 1.05, color: "#fff" }}
-                  className="flex items-center gap-2 transition-colors"
-                >
-                  <Phone className="w-5 h-5" />
-                  +1 614-844-6925
-                </motion.a>
-                <motion.a
-                  href="mailto:hr@oceanbluecorp.com"
-                  whileHover={{ scale: 1.05, color: "#fff" }}
-                  className="flex items-center gap-2 transition-colors"
-                >
-                  <Mail className="w-5 h-5" />
-                  hr@oceanbluecorp.com
-                </motion.a>
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  className="flex items-center gap-2"
-                >
-                  <MapPin className="w-5 h-5" />
-                  Powell, OH 43065
-                </motion.div>
-              </motion.div>
+                <span className="relative z-10 flex items-center justify-center gap-2 font-medium text-sm md:text-base">
+                  Start the conversation
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </span>
+              </Link>
+
+              <Link
+                href="/services"
+                className="group px-7 md:px-8 py-3.5 md:py-4 bg-white/10 backdrop-blur-sm text-white rounded-full hover:bg-white/20 transition-all border border-white/20"
+              >
+                <span className="flex items-center justify-center gap-2 text-sm md:text-base">
+                  <Play className="w-4 h-4" />
+                  See how we work
+                </span>
+              </Link>
             </div>
-          </FadeUp>
+          </motion.div>
         </div>
       </section>
     </div>
