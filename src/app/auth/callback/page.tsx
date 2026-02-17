@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, XCircle, Loader2, Shield, ArrowRight, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
-type AuthStatus = "verifying" | "success" | "error";
+type AuthStatus = "verifying" | "success" | "error" | "email_verified";
 
 export default function CallbackPage() {
   const [status, setStatus] = useState<AuthStatus>("verifying");
@@ -18,6 +18,25 @@ export default function CallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        // Check if we have the required OAuth parameters in the URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get("code");
+        const state = urlParams.get("state");
+
+        // If no code or state, this might be an email verification redirect
+        // or direct navigation - redirect to sign in
+        if (!code || !state) {
+          console.log("No OAuth parameters found, redirecting to sign in...");
+          // Show a friendly message for email verification
+          setStatus("email_verified");
+          setError(null);
+          // Redirect to sign in after showing success message
+          setTimeout(() => {
+            router.push("/auth/signin");
+          }, 3000);
+          return;
+        }
+
         const userManager = getUserManager();
 
         // Process the callback - this will exchange the code for tokens
@@ -53,8 +72,18 @@ export default function CallbackPage() {
         }
       } catch (err) {
         console.error("Callback error:", err);
-        setStatus("error");
-        setError(err instanceof Error ? err.message : "Authentication failed");
+        const errorMessage = err instanceof Error ? err.message : "Authentication failed";
+
+        // Handle specific errors gracefully
+        if (errorMessage.includes("No state in response") || errorMessage.includes("state")) {
+          // This usually means the user came from email verification
+          // Redirect them to sign in
+          setStatus("error");
+          setError("Please sign in to continue after verifying your email.");
+        } else {
+          setStatus("error");
+          setError(errorMessage);
+        }
       }
     };
 
@@ -62,7 +91,7 @@ export default function CallbackPage() {
   }, [router]);
 
   const steps = [
-    { label: "Verifying credentials", completed: status !== "verifying" || status === "error" },
+    { label: "Verifying credentials", completed: status !== "verifying" },
     { label: "Exchanging tokens", completed: status === "success" || status === "error" },
     { label: "Setting up session", completed: status === "success" },
   ];
@@ -224,6 +253,49 @@ export default function CallbackPage() {
                   className="flex items-center justify-center gap-2 text-emerald-600"
                 >
                   <span className="text-sm font-medium">Redirecting to dashboard</span>
+                  <motion.div
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                  </motion.div>
+                </motion.div>
+              </motion.div>
+            )}
+
+            {/* Email Verified State */}
+            {status === "email_verified" && (
+              <motion.div
+                key="email_verified"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="text-center"
+              >
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                  className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 shadow-lg"
+                >
+                  <CheckCircle className="h-10 w-10 text-white" />
+                </motion.div>
+
+                <h1 className="heading-subsection text-gray-900 mb-3">
+                  Email{" "}
+                  <span className="bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">
+                    Verified!
+                  </span>
+                </h1>
+                <p className="text-gray-500 mb-6">Your email has been verified successfully. Please sign in to continue.</p>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="flex items-center justify-center gap-2 text-emerald-600"
+                >
+                  <span className="text-sm font-medium">Redirecting to sign in</span>
                   <motion.div
                     animate={{ x: [0, 5, 0] }}
                     transition={{ duration: 1, repeat: Infinity }}

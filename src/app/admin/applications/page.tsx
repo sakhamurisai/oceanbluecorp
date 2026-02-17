@@ -92,7 +92,7 @@ export default function ApplicationsPage() {
         setJobs(jobsData.jobs || []);
 
         // Merge job info with applications
-        const jobsMap = new Map(
+        const jobsMap = new Map<string, Job>(
           (jobsData.jobs || []).map((job: Job) => [job.id, job])
         );
 

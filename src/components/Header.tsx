@@ -110,9 +110,26 @@ const resources = [
   },
 ];
 
+const aboutItems = [
+  {
+    name: "About Us",
+    href: "/about",
+    icon: Users,
+    description: "Learn about our company",
+    gradient: "from-blue-600 to-cyan-600",
+  },
+  {
+    name: "Our Process",
+    href: "/about#process",
+    icon: Settings,
+    description: "How we deliver results",
+    gradient: "from-indigo-600 to-purple-600",
+  },
+];
+
 const navigation = [
   { name: "Home", href: "/" },
-  { name: "About", href: "/about" },
+  { name: "About", href: "/about", hasDropdown: true, dropdownType: "about" },
   { name: "Services", href: "/services", hasDropdown: true, dropdownType: "services" },
   { name: "Resources", href: "/resources", hasDropdown: true, dropdownType: "resources" },
   { name: "Careers", href: "/careers" },
@@ -180,7 +197,9 @@ export default function Header() {
   }, [mobileMenuOpen]);
 
   const getDropdownItems = (type: string) => {
-    return type === "services" ? services : resources;
+    if (type === "services") return services;
+    if (type === "about") return aboutItems;
+    return resources;
   };
 
   const toggleMobileDropdown = (type: string) => {
@@ -267,16 +286,18 @@ export default function Header() {
                               </Link>
                             ))}
                             
-                            {/* View all link */}
-                            <Link
-                              href={item.dropdownType === "services" ? "/services" : "/resources"}
-                              className="col-span-2 mt-1 flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all group"
-                            >
-                              <span className="text-sm font-medium text-gray-900">
-                                View all {item.dropdownType}
-                              </span>
-                              <ArrowRight className="w-4 h-4 text-gray-500 group-hover:translate-x-0.5 transition-transform" />
-                            </Link>
+                            {/* View all link - only for services and resources */}
+                            {item.dropdownType !== "about" && (
+                              <Link
+                                href={item.dropdownType === "services" ? "/services" : "/resources"}
+                                className="col-span-2 mt-1 flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all group"
+                              >
+                                <span className="text-sm font-medium text-gray-900">
+                                  View all {item.dropdownType}
+                                </span>
+                                <ArrowRight className="w-4 h-4 text-gray-500 group-hover:translate-x-0.5 transition-transform" />
+                              </Link>
+                            )}
                           </div>
                         </motion.div>
                       )}
@@ -462,19 +483,21 @@ export default function Header() {
                                     </Link>
                                   ))}
                                   
-                                  <Link
-                                    href={item.dropdownType === "services" ? "/services" : "/resources"}
-                                    className="flex items-center justify-between p-3 rounded-xl bg-blue-50 hover:bg-blue-100 transition-all mt-2"
-                                    onClick={() => {
-                                      setMobileMenuOpen(false);
-                                      setMobileDropdown(null);
-                                    }}
-                                  >
-                                    <span className="text-sm font-medium text-blue-700">
-                                      View all {item.dropdownType}
-                                    </span>
-                                    <ArrowRight className="w-4 h-4 text-blue-600" />
-                                  </Link>
+                                  {item.dropdownType !== "about" && (
+                                    <Link
+                                      href={item.dropdownType === "services" ? "/services" : "/resources"}
+                                      className="flex items-center justify-between p-3 rounded-xl bg-blue-50 hover:bg-blue-100 transition-all mt-2"
+                                      onClick={() => {
+                                        setMobileMenuOpen(false);
+                                        setMobileDropdown(null);
+                                      }}
+                                    >
+                                      <span className="text-sm font-medium text-blue-700">
+                                        View all {item.dropdownType}
+                                      </span>
+                                      <ArrowRight className="w-4 h-4 text-blue-600" />
+                                    </Link>
+                                  )}
                                 </motion.div>
                               )}
                             </AnimatePresence>

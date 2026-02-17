@@ -1,24 +1,13 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowRight,
   MapPin,
   Briefcase,
   Clock,
   DollarSign,
-  Heart,
-  GraduationCap,
-  Plane,
-  Laptop,
-  Coffee,
-  Users,
   Building2,
-  Zap,
-  Target,
-  Award,
   Search,
   Filter,
   X,
@@ -31,54 +20,9 @@ import {
   Globe,
   Loader2,
   Sparkles,
+  ArrowRight,
 } from "lucide-react";
 import { Job } from "@/lib/aws/dynamodb";
-
-const benefits = [
-  {
-    icon: Heart,
-    title: "Health & Wellness",
-    description: "Comprehensive medical, dental, and vision coverage",
-    gradient: "from-rose-500 to-pink-500",
-  },
-  {
-    icon: GraduationCap,
-    title: "Learning & Growth",
-    description: "Annual learning budget and certification programs",
-    gradient: "from-blue-600 to-indigo-600",
-  },
-  {
-    icon: DollarSign,
-    title: "Compensation",
-    description: "Industry-leading salaries with equity options",
-    gradient: "from-emerald-500 to-teal-500",
-  },
-  {
-    icon: Plane,
-    title: "Flexible PTO",
-    description: "Generous paid time off and wellness days",
-    gradient: "from-amber-500 to-orange-500",
-  },
-  {
-    icon: Laptop,
-    title: "Remote-First",
-    description: "Work from anywhere with flexible arrangements",
-    gradient: "from-cyan-500 to-blue-500",
-  },
-  {
-    icon: Coffee,
-    title: "Work-Life Balance",
-    description: "Flexible hours for personal commitments",
-    gradient: "from-violet-500 to-purple-500",
-  },
-];
-
-const values = [
-  { icon: Zap, title: "Innovation", description: "Push boundaries and embrace new technologies", gradient: "from-amber-500 to-orange-500" },
-  { icon: Users, title: "Collaboration", description: "Work together to achieve extraordinary results", gradient: "from-blue-600 to-cyan-600" },
-  { icon: Target, title: "Excellence", description: "Maintain the highest standards in everything", gradient: "from-emerald-500 to-teal-500" },
-  { icon: Award, title: "Integrity", description: "Build trust through transparency", gradient: "from-violet-500 to-purple-500" },
-];
 
 const departments = ["All Departments", "ERP Solutions", "Cloud Services", "Data & AI", "Salesforce", "IT Staffing", "Training", "PMO"];
 const jobTypes = ["All Types", "full-time", "part-time", "contract", "remote"];
@@ -305,75 +249,6 @@ export default function CareersPage() {
                 </div>
               ))}
             </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section className="py-16 md:py-20 bg-gray-50">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-sm font-medium text-gray-400 uppercase tracking-[0.2em] mb-4 block">Why Join Us</span>
-            <h2 className="heading-subsection text-gray-900 mb-4">
-              Benefits that{" "}
-              <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">matter</span>
-            </h2>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {benefits.map((benefit, index) => (
-              <motion.div
-                key={benefit.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-2xl p-6 border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all group"
-              >
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${benefit.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                  <benefit.icon className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{benefit.title}</h3>
-                <p className="text-gray-500 text-sm">{benefit.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Values Section */}
-      <section className="py-16 md:py-20 bg-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <span className="text-sm font-medium text-gray-400 uppercase tracking-[0.2em] mb-4 block">Our Culture</span>
-              <h2 className="heading-subsection text-gray-900 mb-6">
-                Where Innovation Meets{" "}
-                <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">Opportunity</span>
-              </h2>
-              <p className="text-gray-500 leading-relaxed mb-8">
-                At Ocean Blue, we believe that our people are our greatest asset. We foster a culture of continuous learning, collaboration, and innovation where every team member can thrive and make an impact.
-              </p>
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-4">
-              {values.map((value, index) => (
-                <motion.div
-                  key={value.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="bg-gray-50 rounded-2xl p-5 hover:bg-white hover:shadow-lg transition-all group border border-transparent hover:border-gray-100"
-                >
-                  <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${value.gradient} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-                    <value.icon className="w-5 h-5 text-white" />
-                  </div>
-                  <h4 className="font-semibold text-gray-900 mb-1">{value.title}</h4>
-                  <p className="text-sm text-gray-500">{value.description}</p>
-                </motion.div>
-              ))}
-            </div>
           </div>
         </div>
       </section>
@@ -849,68 +724,6 @@ export default function CareersPage() {
         )}
       </AnimatePresence>
 
-      {/* Hiring Process */}
-      <section className="py-16 md:py-20 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 relative overflow-hidden">
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], x: [0, 20, 0] }}
-          transition={{ duration: 20, repeat: Infinity }}
-          className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-3xl"
-        />
-
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-sm font-medium text-gray-400 uppercase tracking-[0.2em] mb-4 block">How it works</span>
-            <h2 className="text-3xl md:text-4xl font-light text-white mb-4">
-              Our{" "}
-              <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent font-medium">Hiring Process</span>
-            </h2>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { step: "01", title: "Apply", desc: "Submit your application online" },
-              { step: "02", title: "Screen", desc: "Initial phone screen with recruiting" },
-              { step: "03", title: "Interview", desc: "Technical and behavioral interviews" },
-              { step: "04", title: "Offer", desc: "Receive and accept your offer" },
-            ].map((phase, i) => (
-              <motion.div
-                key={phase.step}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="text-center"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold">
-                  {phase.step}
-                </div>
-                <h3 className="text-xl font-semibold text-white mb-2">{phase.title}</h3>
-                <p className="text-gray-400">{phase.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-16 md:py-20 bg-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gray-50 rounded-3xl p-8 md:p-12 text-center border border-gray-100">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">Ready to Make an Impact?</h2>
-            <p className="text-gray-500 max-w-2xl mx-auto mb-8">
-              Join us in transforming how enterprises leverage technology. Your next career adventure starts here.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a href="#openings" className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all inline-flex items-center justify-center gap-2">
-                Browse Positions <ArrowRight className="w-5 h-5" />
-              </a>
-              <Link href="/about" className="px-6 py-3 border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-100 transition-all">
-                Learn About Us
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

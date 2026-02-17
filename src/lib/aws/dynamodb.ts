@@ -72,7 +72,7 @@ export interface Job {
     max: number;
     currency: string;
   };
-  status: "active" | "paused" | "closed";
+  status: "active" | "paused" | "closed" | "draft";
   createdAt: string;
   updatedAt?: string;
   createdBy: string;

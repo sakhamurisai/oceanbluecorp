@@ -130,3 +130,12 @@
   In the same App Client settings, ensure:
   - OAuth 2.0 grant types: Check Authorization code grant
   - OpenID Connect scopes: Check email, openid, phone
+
+1. Go to AWS Console → Cognito → User Pools                                                                                                                                                             
+  2. Select your user pool                                                                                                                                                                                  3. Go to App integration → App client list
+  4. Click on your app client (ca8hpv5amnaqbi8j9031f08ec)
+  5. Under Hosted UI, click Edit
+  6. In the Allowed sign-out URLs field, add:
+    - http://localhost:3000 (for local development)
+    - Your production URL (e.g., https://yourdomain.com)
+  7. Click Save changes
