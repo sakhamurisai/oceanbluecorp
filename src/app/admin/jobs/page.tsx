@@ -1,132 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus,
   Search,
   Filter,
-  MoreVertical,
   Edit3,
   Trash2,
-  Eye,
   Users,
   MapPin,
-  Clock,
-  DollarSign,
   Briefcase,
   CheckCircle2,
   PauseCircle,
   XCircle,
   Copy,
+  Loader2,
+  DollarSign,
+  X,
 } from "lucide-react";
-
-// Sample job data
-const initialJobs = [
-  {
-    id: 1,
-    title: "Senior SAP Consultant",
-    department: "ERP Solutions",
-    location: "Remote",
-    type: "Full-time",
-    salary: "$120,000 - $160,000",
-    applicants: 24,
-    status: "active",
-    postedDate: "2024-01-15",
-    description:
-      "We are looking for an experienced SAP Consultant to join our ERP Solutions team.",
-  },
-  {
-    id: 2,
-    title: "Cloud Solutions Architect",
-    department: "Cloud Services",
-    location: "San Francisco, CA",
-    type: "Full-time",
-    salary: "$140,000 - $180,000",
-    applicants: 18,
-    status: "active",
-    postedDate: "2024-01-12",
-    description:
-      "Join our Cloud team to design and implement scalable cloud solutions for enterprise clients.",
-  },
-  {
-    id: 3,
-    title: "Salesforce Developer",
-    department: "CRM",
-    location: "New York, NY",
-    type: "Full-time",
-    salary: "$100,000 - $130,000",
-    applicants: 32,
-    status: "active",
-    postedDate: "2024-01-10",
-    description:
-      "Develop and customize Salesforce solutions for our enterprise clients.",
-  },
-  {
-    id: 4,
-    title: "Data Analyst",
-    department: "Analytics",
-    location: "Remote",
-    type: "Full-time",
-    salary: "$80,000 - $110,000",
-    applicants: 45,
-    status: "paused",
-    postedDate: "2024-01-05",
-    description:
-      "Analyze complex datasets and provide actionable insights to stakeholders.",
-  },
-  {
-    id: 5,
-    title: "Project Manager",
-    department: "Operations",
-    location: "Chicago, IL",
-    type: "Full-time",
-    salary: "$90,000 - $120,000",
-    applicants: 28,
-    status: "active",
-    postedDate: "2024-01-08",
-    description:
-      "Lead cross-functional teams to deliver IT projects on time and within budget.",
-  },
-  {
-    id: 6,
-    title: "DevOps Engineer",
-    department: "Cloud Services",
-    location: "Remote",
-    type: "Full-time",
-    salary: "$110,000 - $145,000",
-    applicants: 15,
-    status: "draft",
-    postedDate: "2024-01-18",
-    description:
-      "Build and maintain CI/CD pipelines and infrastructure automation.",
-  },
-  {
-    id: 7,
-    title: "Business Analyst",
-    department: "Consulting",
-    location: "Boston, MA",
-    type: "Contract",
-    salary: "$75/hour",
-    applicants: 12,
-    status: "closed",
-    postedDate: "2023-12-20",
-    description:
-      "Work with clients to understand business requirements and translate them into technical specifications.",
-  },
-  {
-    id: 8,
-    title: "Machine Learning Engineer",
-    department: "AI & Data",
-    location: "Remote",
-    type: "Full-time",
-    salary: "$150,000 - $200,000",
-    applicants: 38,
-    status: "active",
-    postedDate: "2024-01-16",
-    description:
-      "Design and implement machine learning models for enterprise applications.",
-  },
-];
+import { Job } from "@/lib/aws/dynamodb";
 
 const statusConfig = {
   active: {
@@ -143,44 +35,240 @@ const statusConfig = {
   closed: { label: "Closed", color: "bg-red-100 text-red-700", icon: XCircle },
 };
 
+const departments = [
+  "ERP Solutions",
+  "Cloud Services",
+  "Data & AI",
+  "Salesforce",
+  "IT Staffing",
+  "Training",
+  "PMO",
+  "Operations",
+];
+
 export default function JobsPage() {
-  const [jobs, setJobs] = useState(initialJobs);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<number | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(
-    null
-  );
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    title: "",
+    department: "ERP Solutions",
+    location: "",
+    type: "full-time" as Job["type"],
+    description: "",
+    requirements: "",
+    responsibilities: "",
+    salaryMin: "",
+    salaryMax: "",
+    status: "draft" as Job["status"],
+  });
+
+  // Fetch jobs from API
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/jobs");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch jobs");
+      }
+
+      setJobs(data.jobs || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch jobs");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredJobs = jobs.filter((job) => {
     const matchesSearch =
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.location.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" || job.status === statusFilter;
+    const matchesStatus = statusFilter === "all" || job.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const handleStatusChange = (jobId: number, newStatus: string) => {
-    setJobs((prev) =>
-      prev.map((job) =>
-        job.id === jobId ? { ...job, status: newStatus } : job
-      )
-    );
+  const handleStatusChange = async (jobId: string, newStatus: Job["status"]) => {
+    try {
+      const response = await fetch(`/api/jobs/${jobId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update status");
+      }
+
+      setJobs((prev) =>
+        prev.map((job) =>
+          job.id === jobId ? { ...job, status: newStatus } : job
+        )
+      );
+    } catch (err) {
+      alert("Failed to update job status");
+    }
   };
 
-  const handleDelete = (jobId: number) => {
-    setJobs((prev) => prev.filter((job) => job.id !== jobId));
-    setShowDeleteConfirm(null);
+  const handleDelete = async (jobId: string) => {
+    try {
+      const response = await fetch(`/api/jobs/${jobId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete job");
+      }
+
+      setJobs((prev) => prev.filter((job) => job.id !== jobId));
+      setShowDeleteConfirm(null);
+    } catch (err) {
+      alert("Failed to delete job");
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    try {
+      const jobData = {
+        title: formData.title,
+        department: formData.department,
+        location: formData.location,
+        type: formData.type,
+        description: formData.description,
+        requirements: formData.requirements.split("\n").filter(Boolean),
+        responsibilities: formData.responsibilities.split("\n").filter(Boolean),
+        salary: formData.salaryMin && formData.salaryMax ? {
+          min: parseInt(formData.salaryMin),
+          max: parseInt(formData.salaryMax),
+          currency: "$",
+        } : undefined,
+        status: formData.status,
+      };
+
+      const url = editingJob ? `/api/jobs/${editingJob.id}` : "/api/jobs";
+      const method = editingJob ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(jobData),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to save job");
+      }
+
+      await fetchJobs();
+      resetForm();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to save job");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      department: "ERP Solutions",
+      location: "",
+      type: "full-time",
+      description: "",
+      requirements: "",
+      responsibilities: "",
+      salaryMin: "",
+      salaryMax: "",
+      status: "draft",
+    });
+    setShowCreateModal(false);
+    setEditingJob(null);
+  };
+
+  const handleEdit = (job: Job) => {
+    setEditingJob(job);
+    setFormData({
+      title: job.title,
+      department: job.department,
+      location: job.location,
+      type: job.type,
+      description: job.description,
+      requirements: job.requirements?.join("\n") || "",
+      responsibilities: job.responsibilities?.join("\n") || "",
+      salaryMin: job.salary?.min?.toString() || "",
+      salaryMax: job.salary?.max?.toString() || "",
+      status: job.status,
+    });
+    setShowCreateModal(true);
+  };
+
+  const handleDuplicate = (job: Job) => {
+    setEditingJob(null);
+    setFormData({
+      title: `${job.title} (Copy)`,
+      department: job.department,
+      location: job.location,
+      type: job.type,
+      description: job.description,
+      requirements: job.requirements?.join("\n") || "",
+      responsibilities: job.responsibilities?.join("\n") || "",
+      salaryMin: job.salary?.min?.toString() || "",
+      salaryMax: job.salary?.max?.toString() || "",
+      status: "draft",
+    });
+    setShowCreateModal(true);
   };
 
   const stats = {
     total: jobs.length,
     active: jobs.filter((j) => j.status === "active").length,
-    totalApplicants: jobs.reduce((sum, j) => sum + j.applicants, 0),
+    totalApplicants: jobs.reduce((sum, j) => sum + (j.applicationsCount || 0), 0),
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 text-blue-600 mx-auto mb-4 animate-spin" />
+          <p className="text-gray-500">Loading jobs...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -193,7 +281,10 @@ export default function JobsPage() {
           </p>
         </div>
         <button
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => {
+            resetForm();
+            setShowCreateModal(true);
+          }}
           className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -300,14 +391,11 @@ export default function JobsPage() {
               {filteredJobs.map((job) => {
                 const status = statusConfig[job.status as keyof typeof statusConfig];
                 return (
-                  <tr
-                    key={job.id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
+                  <tr key={job.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div>
                         <p className="font-medium text-gray-900">{job.title}</p>
-                        <p className="text-sm text-gray-500">{job.type}</p>
+                        <p className="text-sm text-gray-500 capitalize">{job.type}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-gray-600">{job.department}</td>
@@ -320,27 +408,32 @@ export default function JobsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1.5 text-gray-600">
                         <Users className="w-4 h-4" />
-                        {job.applicants}
+                        {job.applicationsCount || 0}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${status.color}`}
+                      <select
+                        value={job.status}
+                        onChange={(e) => handleStatusChange(job.id, e.target.value as Job["status"])}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium border-0 ${status.color} cursor-pointer`}
                       >
-                        <status.icon className="w-3 h-3" />
-                        {status.label}
-                      </span>
+                        <option value="active">Active</option>
+                        <option value="paused">Paused</option>
+                        <option value="draft">Draft</option>
+                        <option value="closed">Closed</option>
+                      </select>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => setSelectedJob(job.id)}
+                          onClick={() => handleEdit(job)}
                           className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                           title="Edit"
                         >
                           <Edit3 className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={() => handleDuplicate(job)}
                           className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
                           title="Duplicate"
                         >
@@ -365,33 +458,45 @@ export default function JobsPage() {
         {filteredJobs.length === 0 && (
           <div className="text-center py-12">
             <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">No jobs found matching your criteria</p>
+            <p className="text-gray-500">No jobs found</p>
+            <button
+              onClick={() => {
+                resetForm();
+                setShowCreateModal(true);
+              }}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Create your first job
+            </button>
           </div>
         )}
       </div>
 
-      {/* Create Job Modal */}
+      {/* Create/Edit Job Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900">
-                Create New Job Posting
+                {editingJob ? "Edit Job Posting" : "Create New Job Posting"}
               </h2>
               <button
-                onClick={() => setShowCreateModal(false)}
+                onClick={resetForm}
                 className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
               >
-                <XCircle className="w-5 h-5" />
+                <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Job Title
+                  Job Title *
                 </label>
                 <input
                   type="text"
+                  required
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                   placeholder="e.g. Senior Software Engineer"
                 />
@@ -399,85 +504,150 @@ export default function JobsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Department
+                    Department *
                   </label>
-                  <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white">
-                    <option>ERP Solutions</option>
-                    <option>Cloud Services</option>
-                    <option>CRM</option>
-                    <option>Analytics</option>
-                    <option>AI & Data</option>
-                    <option>Operations</option>
+                  <select
+                    value={formData.department}
+                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                  >
+                    {departments.map((dept) => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Job Type
+                    Job Type *
                   </label>
-                  <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white">
-                    <option>Full-time</option>
-                    <option>Part-time</option>
-                    <option>Contract</option>
-                    <option>Internship</option>
+                  <select
+                    value={formData.type}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value as Job["type"] })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                  >
+                    <option value="full-time">Full-time</option>
+                    <option value="part-time">Part-time</option>
+                    <option value="contract">Contract</option>
+                    <option value="remote">Remote</option>
                   </select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Location
+                    Location *
                   </label>
                   <input
                     type="text"
+                    required
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     placeholder="e.g. Remote, New York, NY"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Salary Range
+                    Status
                   </label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    placeholder="e.g. $100,000 - $130,000"
-                  />
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value as Job["status"] })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="active">Active (Publish immediately)</option>
+                    <option value="paused">Paused</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Min Salary
+                  </label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="number"
+                      value={formData.salaryMin}
+                      onChange={(e) => setFormData({ ...formData, salaryMin: e.target.value })}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      placeholder="80000"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Max Salary
+                  </label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="number"
+                      value={formData.salaryMax}
+                      onChange={(e) => setFormData({ ...formData, salaryMax: e.target.value })}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      placeholder="120000"
+                    />
+                  </div>
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Job Description
+                  Job Description *
                 </label>
                 <textarea
+                  required
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
-                  rows={6}
-                  placeholder="Describe the role, responsibilities, and requirements..."
+                  rows={4}
+                  placeholder="Describe the role, responsibilities, and what makes it exciting..."
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Status
+                  Requirements (one per line)
                 </label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white">
-                  <option value="draft">Draft</option>
-                  <option value="active">Active (Publish immediately)</option>
-                </select>
+                <textarea
+                  value={formData.requirements}
+                  onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                  rows={3}
+                  placeholder="5+ years of experience&#10;Bachelor's degree in Computer Science&#10;Strong communication skills"
+                />
               </div>
-            </div>
-            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-end gap-3">
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Create Job
-              </button>
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Responsibilities (one per line)
+                </label>
+                <textarea
+                  value={formData.responsibilities}
+                  onChange={(e) => setFormData({ ...formData, responsibilities: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                  rows={3}
+                  placeholder="Lead technical projects&#10;Mentor junior developers&#10;Collaborate with product team"
+                />
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {editingJob ? "Save Changes" : "Create Job"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -494,7 +664,7 @@ export default function JobsPage() {
             </h3>
             <p className="text-gray-600 text-center mb-6">
               This action cannot be undone. All applications for this position
-              will also be removed.
+              will also be affected.
             </p>
             <div className="flex items-center gap-3">
               <button

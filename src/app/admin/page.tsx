@@ -1,169 +1,184 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   Briefcase,
   Users,
   FileText,
-  TrendingUp,
   Eye,
   ArrowUpRight,
-  ArrowDownRight,
   Clock,
   CheckCircle2,
   XCircle,
   Calendar,
   Activity,
-  BarChart3,
   UserPlus,
-  DollarSign,
-  Target,
+  Loader2,
+  MessageSquare,
+  Mail,
 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
-// Sample data
-const stats = [
-  {
-    name: "Total Applications",
-    value: "128",
-    change: "+12%",
-    changeType: "increase",
-    icon: Users,
-    href: "/admin/applications",
-    color: "from-blue-500 to-indigo-600",
-    bgColor: "bg-blue-50",
-  },
-  {
-    name: "Active Jobs",
-    value: "8",
-    change: "+2",
-    changeType: "increase",
-    icon: Briefcase,
-    href: "/admin/jobs",
-    color: "from-emerald-500 to-teal-600",
-    bgColor: "bg-emerald-50",
-  },
-  {
-    name: "Page Views",
-    value: "24.5K",
-    change: "+18%",
-    changeType: "increase",
-    icon: Eye,
-    href: "#",
-    color: "from-violet-500 to-purple-600",
-    bgColor: "bg-violet-50",
-  },
-  {
-    name: "New Users",
-    value: "42",
-    change: "+8%",
-    changeType: "increase",
-    icon: UserPlus,
-    href: "/admin/users",
-    color: "from-amber-500 to-orange-600",
-    bgColor: "bg-amber-50",
-  },
-];
-
-const recentApplications = [
-  {
-    id: 1,
-    name: "John Smith",
-    email: "john.smith@email.com",
-    position: "Senior SAP Consultant",
-    status: "pending",
-    date: "2 hours ago",
-  },
-  {
-    id: 2,
-    name: "Sarah Johnson",
-    email: "sarah.j@email.com",
-    position: "Cloud Solutions Architect",
-    status: "reviewing",
-    date: "5 hours ago",
-  },
-  {
-    id: 3,
-    name: "Michael Chen",
-    email: "m.chen@email.com",
-    position: "Salesforce Developer",
-    status: "approved",
-    date: "1 day ago",
-  },
-  {
-    id: 4,
-    name: "Emily Davis",
-    email: "emily.d@email.com",
-    position: "Data Analyst",
-    status: "rejected",
-    date: "2 days ago",
-  },
-  {
-    id: 5,
-    name: "Robert Wilson",
-    email: "r.wilson@email.com",
-    position: "Project Manager",
-    status: "pending",
-    date: "3 days ago",
-  },
-];
-
-const recentJobs = [
-  {
-    id: 1,
-    title: "Senior SAP Consultant",
-    department: "ERP Solutions",
-    location: "Remote",
-    applicants: 24,
-    status: "active",
-  },
-  {
-    id: 2,
-    title: "Cloud Solutions Architect",
-    department: "Cloud Services",
-    location: "San Francisco, CA",
-    applicants: 18,
-    status: "active",
-  },
-  {
-    id: 3,
-    title: "Salesforce Developer",
-    department: "CRM",
-    location: "New York, NY",
-    applicants: 32,
-    status: "active",
-  },
-  {
-    id: 4,
-    title: "Data Analyst",
-    department: "Analytics",
-    location: "Remote",
-    applicants: 45,
-    status: "paused",
-  },
-];
+interface DashboardStats {
+  totalJobs: number;
+  activeJobs: number;
+  pausedJobs: number;
+  draftJobs: number;
+  closedJobs: number;
+  totalApplications: number;
+  pendingApplications: number;
+  reviewingApplications: number;
+  interviewApplications: number;
+  offeredApplications: number;
+  hiredApplications: number;
+  rejectedApplications: number;
+  recentApplications: {
+    id: string;
+    name: string;
+    email: string;
+    position: string;
+    status: string;
+    appliedAt: string;
+  }[];
+  recentJobs: {
+    id: string;
+    title: string;
+    department: string;
+    location: string;
+    applicants: number;
+    status: string;
+  }[];
+  applicationsByStatus: Record<string, number>;
+  jobsByDepartment: Record<string, number>;
+}
 
 const statusStyles = {
   pending: { bg: "bg-amber-100", text: "text-amber-700", icon: Clock },
   reviewing: { bg: "bg-blue-100", text: "text-blue-700", icon: Eye },
-  approved: { bg: "bg-emerald-100", text: "text-emerald-700", icon: CheckCircle2 },
+  interview: { bg: "bg-purple-100", text: "text-purple-700", icon: MessageSquare },
+  offered: { bg: "bg-cyan-100", text: "text-cyan-700", icon: Mail },
+  hired: { bg: "bg-emerald-100", text: "text-emerald-700", icon: CheckCircle2 },
   rejected: { bg: "bg-red-100", text: "text-red-700", icon: XCircle },
   active: { bg: "bg-emerald-100", text: "text-emerald-700", icon: CheckCircle2 },
   paused: { bg: "bg-slate-100", text: "text-slate-600", icon: Clock },
+  draft: { bg: "bg-gray-100", text: "text-gray-600", icon: FileText },
+  closed: { bg: "bg-red-100", text: "text-red-700", icon: XCircle },
 };
 
-const activityData = [
-  { label: "Mon", value: 65 },
-  { label: "Tue", value: 85 },
-  { label: "Wed", value: 45 },
-  { label: "Thu", value: 90 },
-  { label: "Fri", value: 70 },
-  { label: "Sat", value: 35 },
-  { label: "Sun", value: 25 },
-];
+function getTimeAgo(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffHours < 1) return "Just now";
+  if (diffHours < 24) return `${diffHours} hours ago`;
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString();
+}
 
 export default function AdminDashboard() {
-  const maxActivityValue = Math.max(...activityData.map((d) => d.value));
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/admin/stats");
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to fetch stats");
+        }
+
+        setStats(data.stats);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch stats");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 text-cyan-600 mx-auto mb-4 animate-spin" />
+          <p className="text-gray-500">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!stats) return null;
+
+  const statCards = [
+    {
+      name: "Total Applications",
+      value: stats.totalApplications.toString(),
+      change: `${stats.pendingApplications} pending`,
+      changeType: "info",
+      icon: Users,
+      href: "/admin/applications",
+      color: "from-blue-500 to-indigo-600",
+    },
+    {
+      name: "Active Jobs",
+      value: stats.activeJobs.toString(),
+      change: `${stats.totalJobs} total`,
+      changeType: "info",
+      icon: Briefcase,
+      href: "/admin/jobs",
+      color: "from-emerald-500 to-teal-600",
+    },
+    {
+      name: "In Review",
+      value: (stats.reviewingApplications + stats.interviewApplications).toString(),
+      change: `${stats.interviewApplications} interviews`,
+      changeType: "info",
+      icon: Eye,
+      href: "/admin/applications?status=reviewing",
+      color: "from-violet-500 to-purple-600",
+    },
+    {
+      name: "Hired",
+      value: stats.hiredApplications.toString(),
+      change: `${stats.offeredApplications} offers pending`,
+      changeType: "increase",
+      icon: UserPlus,
+      href: "/admin/applications?status=hired",
+      color: "from-amber-500 to-orange-600",
+    },
+  ];
+
+  // Calculate conversion rate
+  const conversionRate = stats.totalApplications > 0
+    ? ((stats.hiredApplications / stats.totalApplications) * 100).toFixed(1)
+    : "0";
 
   return (
     <div className="space-y-6">
@@ -178,7 +193,7 @@ export default function AdminDashboard() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-600">
             <Calendar className="w-4 h-4" />
-            <span>Last 30 days</span>
+            <span>Live Data</span>
           </div>
           <Link
             href="/admin/jobs/new"
@@ -191,7 +206,7 @@ export default function AdminDashboard() {
 
       {/* Stats grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {stats.map((stat, index) => (
+        {statCards.map((stat, index) => (
           <motion.div
             key={stat.name}
             initial={{ opacity: 0, y: 20 }}
@@ -206,17 +221,10 @@ export default function AdminDashboard() {
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}>
                   <stat.icon className="w-6 h-6 text-white" />
                 </div>
-                <span
-                  className={`inline-flex items-center gap-1 text-sm font-semibold ${
-                    stat.changeType === "increase"
-                      ? "text-emerald-600"
-                      : stat.changeType === "decrease"
-                      ? "text-red-600"
-                      : "text-slate-500"
-                  }`}
-                >
+                <span className={`inline-flex items-center gap-1 text-sm font-medium ${
+                  stat.changeType === "increase" ? "text-emerald-600" : "text-slate-500"
+                }`}>
                   {stat.changeType === "increase" && <ArrowUpRight className="w-4 h-4" />}
-                  {stat.changeType === "decrease" && <ArrowDownRight className="w-4 h-4" />}
                   {stat.change}
                 </span>
               </div>
@@ -231,34 +239,30 @@ export default function AdminDashboard() {
 
       {/* Activity Chart & Quick Stats */}
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Activity Chart */}
+        {/* Applications by Status */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="font-semibold text-slate-900">Weekly Activity</h2>
-              <p className="text-sm text-slate-500">Page views and engagement</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-cyan-500" />
-              <span className="text-sm text-slate-600">Page Views</span>
+              <h2 className="font-semibold text-slate-900">Applications by Status</h2>
+              <p className="text-sm text-slate-500">Current pipeline breakdown</p>
             </div>
           </div>
-          <div className="h-48 flex items-end justify-between gap-3">
-            {activityData.map((day, index) => (
-              <div key={day.label} className="flex-1 flex flex-col items-center gap-2">
-                <motion.div
-                  initial={{ height: 0 }}
-                  animate={{ height: `${(day.value / maxActivityValue) * 100}%` }}
-                  transition={{ delay: index * 0.1, duration: 0.5 }}
-                  className="w-full bg-gradient-to-t from-cyan-500 to-blue-500 rounded-t-lg min-h-[20px] relative group cursor-pointer hover:from-cyan-400 hover:to-blue-400 transition-all"
-                >
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                    {day.value} views
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {Object.entries(stats.applicationsByStatus).map(([status, count]) => {
+              const style = statusStyles[status as keyof typeof statusStyles];
+              const StatusIcon = style?.icon || Clock;
+              return (
+                <div key={status} className={`p-4 rounded-xl ${style?.bg || "bg-gray-100"}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <StatusIcon className={`w-4 h-4 ${style?.text || "text-gray-600"}`} />
+                    <span className={`text-sm font-medium capitalize ${style?.text || "text-gray-600"}`}>
+                      {status}
+                    </span>
                   </div>
-                </motion.div>
-                <span className="text-xs text-slate-500 font-medium">{day.label}</span>
-              </div>
-            ))}
+                  <p className="text-2xl font-bold text-slate-900">{count}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -278,28 +282,33 @@ export default function AdminDashboard() {
             <div className="p-4 rounded-xl bg-white/5 border border-white/10">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-slate-300">Conversion Rate</span>
-                <span className="text-sm font-semibold text-emerald-400">+5.2%</span>
+                <span className="text-sm font-semibold text-emerald-400">
+                  {stats.hiredApplications > 0 ? "Active" : "N/A"}
+                </span>
               </div>
-              <p className="text-2xl font-bold">24.8%</p>
+              <p className="text-2xl font-bold">{conversionRate}%</p>
               <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full w-[24.8%] bg-gradient-to-r from-cyan-400 to-emerald-400 rounded-full" />
+                <div
+                  className="h-full bg-gradient-to-r from-cyan-400 to-emerald-400 rounded-full"
+                  style={{ width: `${Math.min(parseFloat(conversionRate), 100)}%` }}
+                />
               </div>
             </div>
 
             <div className="p-4 rounded-xl bg-white/5 border border-white/10">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-slate-300">Avg. Response Time</span>
-                <span className="text-sm font-semibold text-emerald-400">-12%</span>
+                <span className="text-sm text-slate-300">Total Jobs</span>
+                <span className="text-sm font-semibold text-cyan-400">{stats.activeJobs} active</span>
               </div>
-              <p className="text-2xl font-bold">2.4 days</p>
+              <p className="text-2xl font-bold">{stats.totalJobs}</p>
             </div>
 
             <div className="p-4 rounded-xl bg-white/5 border border-white/10">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-slate-300">Open Positions</span>
-                <span className="text-sm font-semibold text-amber-400">8 active</span>
+                <span className="text-sm text-slate-300">Pending Review</span>
+                <span className="text-sm font-semibold text-amber-400">needs attention</span>
               </div>
-              <p className="text-2xl font-bold">12</p>
+              <p className="text-2xl font-bold">{stats.pendingApplications}</p>
             </div>
           </div>
         </div>
@@ -322,40 +331,45 @@ export default function AdminDashboard() {
             </Link>
           </div>
           <div className="divide-y divide-slate-100">
-            {recentApplications.map((app) => {
-              const status = statusStyles[app.status as keyof typeof statusStyles];
-              const StatusIcon = status.icon;
-              return (
-                <div
-                  key={app.id}
-                  className="px-6 py-4 hover:bg-slate-50/50 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-md">
-                        {app.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
+            {stats.recentApplications.length > 0 ? (
+              stats.recentApplications.map((app) => {
+                const status = statusStyles[app.status as keyof typeof statusStyles] || statusStyles.pending;
+                const StatusIcon = status.icon;
+                return (
+                  <div
+                    key={app.id}
+                    className="px-6 py-4 hover:bg-slate-50/50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-md">
+                          {app.name.split(" ").map((n) => n[0]).join("")}
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900">{app.name}</p>
+                          <p className="text-sm text-slate-500">{app.position}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-slate-900">{app.name}</p>
-                        <p className="text-sm text-slate-500">{app.position}</p>
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium capitalize ${status.bg} ${status.text}`}
+                        >
+                          <StatusIcon className="w-3 h-3" />
+                          {app.status}
+                        </span>
+                        <span className="text-xs text-slate-400 hidden sm:block">
+                          {getTimeAgo(app.appliedAt)}
+                        </span>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium capitalize ${status.bg} ${status.text}`}
-                      >
-                        <StatusIcon className="w-3 h-3" />
-                        {app.status}
-                      </span>
-                      <span className="text-xs text-slate-400 hidden sm:block">{app.date}</span>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <div className="px-6 py-8 text-center text-slate-500">
+                No applications yet
+              </div>
+            )}
           </div>
         </div>
 
@@ -374,35 +388,41 @@ export default function AdminDashboard() {
             </Link>
           </div>
           <div className="divide-y divide-slate-100">
-            {recentJobs.map((job) => {
-              const status = statusStyles[job.status as keyof typeof statusStyles];
-              return (
-                <div
-                  key={job.id}
-                  className="px-6 py-4 hover:bg-slate-50/50 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-slate-900">{job.title}</p>
-                      <p className="text-sm text-slate-500">
-                        {job.department} &bull; {job.location}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right hidden sm:block">
-                        <p className="text-sm font-semibold text-slate-900">{job.applicants}</p>
-                        <p className="text-xs text-slate-500">applicants</p>
+            {stats.recentJobs.length > 0 ? (
+              stats.recentJobs.map((job) => {
+                const status = statusStyles[job.status as keyof typeof statusStyles] || statusStyles.active;
+                return (
+                  <div
+                    key={job.id}
+                    className="px-6 py-4 hover:bg-slate-50/50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-slate-900">{job.title}</p>
+                        <p className="text-sm text-slate-500">
+                          {job.department} &bull; {job.location}
+                        </p>
                       </div>
-                      <span
-                        className={`px-2.5 py-1 rounded-lg text-xs font-medium capitalize ${status.bg} ${status.text}`}
-                      >
-                        {job.status}
-                      </span>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right hidden sm:block">
+                          <p className="text-sm font-semibold text-slate-900">{job.applicants}</p>
+                          <p className="text-xs text-slate-500">applicants</p>
+                        </div>
+                        <span
+                          className={`px-2.5 py-1 rounded-lg text-xs font-medium capitalize ${status.bg} ${status.text}`}
+                        >
+                          {job.status}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <div className="px-6 py-8 text-center text-slate-500">
+                No jobs posted yet
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -424,31 +444,31 @@ export default function AdminDashboard() {
             </div>
           </Link>
           <Link
-            href="/admin/content"
+            href="/admin/applications"
             className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 transition-all group"
           >
             <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center group-hover:from-emerald-200 group-hover:to-emerald-300 transition-colors">
               <FileText className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
-              <span className="font-medium text-slate-900 block">Edit Content</span>
-              <span className="text-xs text-slate-500">Update pages</span>
+              <span className="font-medium text-slate-900 block">Applications</span>
+              <span className="text-xs text-slate-500">{stats.pendingApplications} pending</span>
             </div>
           </Link>
           <Link
-            href="/admin/users"
+            href="/admin/jobs"
             className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 hover:border-violet-300 hover:bg-violet-50/50 transition-all group"
           >
             <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-100 to-violet-200 flex items-center justify-center group-hover:from-violet-200 group-hover:to-violet-300 transition-colors">
               <Users className="w-5 h-5 text-violet-600" />
             </div>
             <div>
-              <span className="font-medium text-slate-900 block">Manage Users</span>
-              <span className="text-xs text-slate-500">User accounts</span>
+              <span className="font-medium text-slate-900 block">Manage Jobs</span>
+              <span className="text-xs text-slate-500">{stats.totalJobs} jobs</span>
             </div>
           </Link>
           <Link
-            href="/"
+            href="/careers"
             target="_blank"
             className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 hover:border-amber-300 hover:bg-amber-50/50 transition-all group"
           >
@@ -456,7 +476,7 @@ export default function AdminDashboard() {
               <Eye className="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <span className="font-medium text-slate-900 block">View Website</span>
+              <span className="font-medium text-slate-900 block">View Careers</span>
               <span className="text-xs text-slate-500">Preview site</span>
             </div>
           </Link>

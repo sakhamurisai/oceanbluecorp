@@ -22,6 +22,7 @@ export const dynamoDBConfig = {
     resumes: process.env.AWS_DYNAMODB_TABLE_RESUMES || "oceanblue-resumes",
     applications: process.env.AWS_DYNAMODB_TABLE_APPLICATIONS || "oceanblue-applications",
     jobs: process.env.AWS_DYNAMODB_TABLE_JOBS || "oceanblue-jobs",
+    candidates: process.env.AWS_DYNAMODB_TABLE_CANDIDATES || "oceanblue-candidates",
   },
   endpoint: process.env.AWS_DYNAMODB_ENDPOINT, // Optional: for DynamoDB Local
 };

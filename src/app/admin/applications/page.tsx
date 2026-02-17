@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Search,
   Filter,
@@ -20,155 +20,14 @@ import {
   ExternalLink,
   Star,
   Briefcase,
+  Loader2,
 } from "lucide-react";
+import { Application, Job } from "@/lib/aws/dynamodb";
 
-// Sample application data
-const initialApplications = [
-  {
-    id: 1,
-    name: "John Smith",
-    email: "john.smith@email.com",
-    phone: "+1 (555) 123-4567",
-    location: "San Francisco, CA",
-    position: "Senior SAP Consultant",
-    department: "ERP Solutions",
-    experience: "8 years",
-    education: "MS Computer Science, Stanford",
-    status: "pending",
-    appliedDate: "2024-01-18",
-    resume: "john_smith_resume.pdf",
-    coverLetter: true,
-    skills: ["SAP HANA", "SAP S/4", "ABAP", "SAP Fiori"],
-    rating: 4,
-    notes: "",
-  },
-  {
-    id: 2,
-    name: "Sarah Johnson",
-    email: "sarah.j@email.com",
-    phone: "+1 (555) 234-5678",
-    location: "Seattle, WA",
-    position: "Cloud Solutions Architect",
-    department: "Cloud Services",
-    experience: "10 years",
-    education: "BS Computer Engineering, MIT",
-    status: "reviewing",
-    appliedDate: "2024-01-17",
-    resume: "sarah_johnson_resume.pdf",
-    coverLetter: true,
-    skills: ["AWS", "Azure", "Kubernetes", "Terraform"],
-    rating: 5,
-    notes: "Strong candidate, schedule interview",
-  },
-  {
-    id: 3,
-    name: "Michael Chen",
-    email: "m.chen@email.com",
-    phone: "+1 (555) 345-6789",
-    location: "New York, NY",
-    position: "Salesforce Developer",
-    department: "CRM",
-    experience: "5 years",
-    education: "BS Information Systems, NYU",
-    status: "interview",
-    appliedDate: "2024-01-15",
-    resume: "michael_chen_resume.pdf",
-    coverLetter: false,
-    skills: ["Salesforce", "Apex", "Lightning", "Visualforce"],
-    rating: 4,
-    notes: "Interview scheduled for Jan 22",
-  },
-  {
-    id: 4,
-    name: "Emily Davis",
-    email: "emily.d@email.com",
-    phone: "+1 (555) 456-7890",
-    location: "Chicago, IL",
-    position: "Data Analyst",
-    department: "Analytics",
-    experience: "3 years",
-    education: "MS Data Science, Northwestern",
-    status: "rejected",
-    appliedDate: "2024-01-14",
-    resume: "emily_davis_resume.pdf",
-    coverLetter: true,
-    skills: ["Python", "SQL", "Tableau", "Machine Learning"],
-    rating: 2,
-    notes: "Does not meet experience requirements",
-  },
-  {
-    id: 5,
-    name: "Robert Wilson",
-    email: "r.wilson@email.com",
-    phone: "+1 (555) 567-8901",
-    location: "Austin, TX",
-    position: "Project Manager",
-    department: "Operations",
-    experience: "7 years",
-    education: "MBA, UT Austin",
-    status: "offered",
-    appliedDate: "2024-01-12",
-    resume: "robert_wilson_resume.pdf",
-    coverLetter: true,
-    skills: ["PMP", "Agile", "Scrum", "JIRA"],
-    rating: 5,
-    notes: "Offer sent, awaiting response",
-  },
-  {
-    id: 6,
-    name: "Lisa Anderson",
-    email: "lisa.a@email.com",
-    phone: "+1 (555) 678-9012",
-    location: "Remote",
-    position: "Machine Learning Engineer",
-    department: "AI & Data",
-    experience: "6 years",
-    education: "PhD Machine Learning, Carnegie Mellon",
-    status: "pending",
-    appliedDate: "2024-01-18",
-    resume: "lisa_anderson_resume.pdf",
-    coverLetter: true,
-    skills: ["TensorFlow", "PyTorch", "Python", "MLOps"],
-    rating: 0,
-    notes: "",
-  },
-  {
-    id: 7,
-    name: "David Kim",
-    email: "d.kim@email.com",
-    phone: "+1 (555) 789-0123",
-    location: "Los Angeles, CA",
-    position: "DevOps Engineer",
-    department: "Cloud Services",
-    experience: "4 years",
-    education: "BS Computer Science, UCLA",
-    status: "reviewing",
-    appliedDate: "2024-01-16",
-    resume: "david_kim_resume.pdf",
-    coverLetter: false,
-    skills: ["Docker", "Jenkins", "CI/CD", "Linux"],
-    rating: 3,
-    notes: "",
-  },
-  {
-    id: 8,
-    name: "Jennifer Martinez",
-    email: "j.martinez@email.com",
-    phone: "+1 (555) 890-1234",
-    location: "Miami, FL",
-    position: "Senior SAP Consultant",
-    department: "ERP Solutions",
-    experience: "12 years",
-    education: "MS Business Analytics, FIU",
-    status: "hired",
-    appliedDate: "2024-01-08",
-    resume: "jennifer_martinez_resume.pdf",
-    coverLetter: true,
-    skills: ["SAP ECC", "SAP HANA", "SAP BW", "ABAP"],
-    rating: 5,
-    notes: "Started on Jan 22",
-  },
-];
+interface ApplicationWithJob extends Application {
+  jobTitle?: string;
+  jobDepartment?: string;
+}
 
 const statusConfig = {
   pending: {
@@ -204,39 +63,130 @@ const statusConfig = {
 };
 
 export default function ApplicationsPage() {
-  const [applications, setApplications] = useState(initialApplications);
+  const [applications, setApplications] = useState<ApplicationWithJob[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [positionFilter, setPositionFilter] = useState("all");
-  const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [selectedApp, setSelectedApp] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const positions = [...new Set(applications.map((a) => a.position))];
+  // Fetch applications and jobs from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [appsResponse, jobsResponse] = await Promise.all([
+          fetch("/api/applications"),
+          fetch("/api/jobs"),
+        ]);
+
+        const appsData = await appsResponse.json();
+        const jobsData = await jobsResponse.json();
+
+        if (!appsResponse.ok || !jobsResponse.ok) {
+          throw new Error("Failed to fetch data");
+        }
+
+        setJobs(jobsData.jobs || []);
+
+        // Merge job info with applications
+        const jobsMap = new Map(
+          (jobsData.jobs || []).map((job: Job) => [job.id, job])
+        );
+
+        const appsWithJobs = (appsData.applications || []).map((app: Application) => ({
+          ...app,
+          jobTitle: jobsMap.get(app.jobId)?.title || "Unknown Position",
+          jobDepartment: jobsMap.get(app.jobId)?.department || "",
+        }));
+
+        setApplications(appsWithJobs);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const positions = [...new Set(applications.map((a) => a.jobTitle).filter(Boolean))];
 
   const filteredApplications = applications.filter((app) => {
     const matchesSearch =
       app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.position.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" || app.status === statusFilter;
-    const matchesPosition =
-      positionFilter === "all" || app.position === positionFilter;
+      (app.jobTitle?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
+    const matchesStatus = statusFilter === "all" || app.status === statusFilter;
+    const matchesPosition = positionFilter === "all" || app.jobTitle === positionFilter;
     return matchesSearch && matchesStatus && matchesPosition;
   });
 
-  const handleStatusChange = (appId: number, newStatus: string) => {
-    setApplications((prev) =>
-      prev.map((app) =>
-        app.id === appId ? { ...app, status: newStatus } : app
-      )
-    );
+  const handleStatusChange = async (appId: string, newStatus: Application["status"]) => {
+    try {
+      const response = await fetch(`/api/applications/${appId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update status");
+      }
+
+      setApplications((prev) =>
+        prev.map((app) =>
+          app.id === appId ? { ...app, status: newStatus } : app
+        )
+      );
+    } catch (err) {
+      alert("Failed to update application status");
+    }
   };
 
-  const handleRatingChange = (appId: number, rating: number) => {
-    setApplications((prev) =>
-      prev.map((app) => (app.id === appId ? { ...app, rating } : app))
-    );
+  const handleRatingChange = async (appId: string, rating: number) => {
+    try {
+      const response = await fetch(`/api/applications/${appId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update rating");
+      }
+
+      setApplications((prev) =>
+        prev.map((app) => (app.id === appId ? { ...app, rating } : app))
+      );
+    } catch (err) {
+      alert("Failed to update rating");
+    }
+  };
+
+  const handleExportCSV = () => {
+    const headers = ["Name", "Email", "Phone", "Position", "Status", "Applied Date", "Rating"];
+    const rows = filteredApplications.map((app) => [
+      app.name,
+      app.email,
+      app.phone || "",
+      app.jobTitle || "",
+      app.status,
+      new Date(app.appliedAt).toLocaleDateString(),
+      app.rating?.toString() || "",
+    ]);
+
+    const csvContent = [headers, ...rows].map((row) => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `applications-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const stats = {
@@ -248,6 +198,33 @@ export default function ApplicationsPage() {
     hired: applications.filter((a) => a.status === "hired").length,
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 text-blue-600 mx-auto mb-4 animate-spin" />
+          <p className="text-gray-500">Loading applications...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -258,7 +235,11 @@ export default function ApplicationsPage() {
             Review and manage job applications
           </p>
         </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+        <button
+          onClick={handleExportCSV}
+          disabled={filteredApplications.length === 0}
+          className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+        >
           <Download className="w-4 h-4" />
           Export CSV
         </button>
@@ -362,214 +343,207 @@ export default function ApplicationsPage() {
 
       {/* Applications list */}
       <div className="space-y-4">
-        {filteredApplications.map((app) => {
-          const status = statusConfig[app.status as keyof typeof statusConfig];
-          const isExpanded = expandedId === app.id;
+        {filteredApplications.length > 0 ? (
+          filteredApplications.map((app) => {
+            const status = statusConfig[app.status as keyof typeof statusConfig] || statusConfig.pending;
+            const isExpanded = expandedId === app.id;
 
-          return (
-            <div
-              key={app.id}
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:border-blue-200 transition-colors"
-            >
-              {/* Main row */}
+            return (
               <div
-                className="p-4 cursor-pointer"
-                onClick={() => setExpandedId(isExpanded ? null : app.id)}
+                key={app.id}
+                className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:border-blue-200 transition-colors"
               >
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white font-semibold">
-                      {app.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-gray-900">
-                          {app.name}
-                        </h3>
-                        {/* Rating */}
-                        <div className="flex items-center gap-0.5">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <button
-                              key={star}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRatingChange(app.id, star);
-                              }}
-                              className="focus:outline-none"
-                            >
-                              <Star
-                                className={`w-4 h-4 ${
-                                  star <= app.rating
-                                    ? "fill-amber-400 text-amber-400"
-                                    : "text-gray-300"
-                                }`}
-                              />
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <Briefcase className="w-3.5 h-3.5" />
-                          {app.position}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5" />
-                          {app.location}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3.5 h-3.5" />
-                          {new Date(app.appliedDate).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${status.color}`}
-                    >
-                      <status.icon className="w-3.5 h-3.5" />
-                      {status.label}
-                    </span>
-                    {isExpanded ? (
-                      <ChevronUp className="w-5 h-5 text-gray-400" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-gray-400" />
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Expanded details */}
-              {isExpanded && (
-                <div className="border-t border-gray-100 p-4 bg-gray-50">
-                  <div className="grid lg:grid-cols-3 gap-6">
-                    {/* Contact & Info */}
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-gray-900">
-                        Contact Information
-                      </h4>
-                      <div className="space-y-2 text-sm">
-                        <a
-                          href={`mailto:${app.email}`}
-                          className="flex items-center gap-2 text-gray-600 hover:text-blue-600"
-                        >
-                          <Mail className="w-4 h-4" />
-                          {app.email}
-                        </a>
-                        <a
-                          href={`tel:${app.phone}`}
-                          className="flex items-center gap-2 text-gray-600 hover:text-blue-600"
-                        >
-                          <Phone className="w-4 h-4" />
-                          {app.phone}
-                        </a>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <MapPin className="w-4 h-4" />
-                          {app.location}
-                        </div>
-                      </div>
-                      <div className="pt-2">
-                        <p className="text-sm text-gray-500">Experience</p>
-                        <p className="font-medium text-gray-900">
-                          {app.experience}
-                        </p>
+                {/* Main row */}
+                <div
+                  className="p-4 cursor-pointer"
+                  onClick={() => setExpandedId(isExpanded ? null : app.id)}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white font-semibold">
+                        {app.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Education</p>
-                        <p className="font-medium text-gray-900">
-                          {app.education}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-gray-900">
+                            {app.name}
+                          </h3>
+                          {/* Rating */}
+                          <div className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button
+                                key={star}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRatingChange(app.id, star);
+                                }}
+                                className="focus:outline-none"
+                              >
+                                <Star
+                                  className={`w-4 h-4 ${
+                                    star <= (app.rating || 0)
+                                      ? "fill-amber-400 text-amber-400"
+                                      : "text-gray-300"
+                                  }`}
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Briefcase className="w-3.5 h-3.5" />
+                            {app.jobTitle}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5" />
+                            {new Date(app.appliedAt).toLocaleDateString()}
+                          </span>
+                        </div>
                       </div>
                     </div>
+                    <div className="flex items-center gap-4">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${status.color}`}
+                      >
+                        <status.icon className="w-3.5 h-3.5" />
+                        {status.label}
+                      </span>
+                      {isExpanded ? (
+                        <ChevronUp className="w-5 h-5 text-gray-400" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-gray-400" />
+                      )}
+                    </div>
+                  </div>
+                </div>
 
-                    {/* Skills & Resume */}
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-gray-900">Skills</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {app.skills.map((skill) => (
-                          <span
-                            key={skill}
-                            className="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium"
-                          >
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="pt-2 space-y-2">
+                {/* Expanded details */}
+                {isExpanded && (
+                  <div className="border-t border-gray-100 p-4 bg-gray-50">
+                    <div className="grid lg:grid-cols-3 gap-6">
+                      {/* Contact & Info */}
+                      <div className="space-y-4">
                         <h4 className="font-semibold text-gray-900">
-                          Documents
+                          Contact Information
                         </h4>
-                        <button className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700">
-                          <FileText className="w-4 h-4" />
-                          {app.resume}
-                          <ExternalLink className="w-3 h-3" />
-                        </button>
-                        {app.coverLetter && (
-                          <span className="flex items-center gap-2 text-sm text-gray-600">
-                            <CheckCircle2 className="w-4 h-4 text-green-500" />
-                            Cover letter included
-                          </span>
+                        <div className="space-y-2 text-sm">
+                          <a
+                            href={`mailto:${app.email}`}
+                            className="flex items-center gap-2 text-gray-600 hover:text-blue-600"
+                          >
+                            <Mail className="w-4 h-4" />
+                            {app.email}
+                          </a>
+                          {app.phone && (
+                            <a
+                              href={`tel:${app.phone}`}
+                              className="flex items-center gap-2 text-gray-600 hover:text-blue-600"
+                            >
+                              <Phone className="w-4 h-4" />
+                              {app.phone}
+                            </a>
+                          )}
+                        </div>
+                        {app.experience && (
+                          <div className="pt-2">
+                            <p className="text-sm text-gray-500">Experience</p>
+                            <p className="font-medium text-gray-900">
+                              {app.experience}
+                            </p>
+                          </div>
+                        )}
+                        {app.skills && app.skills.length > 0 && (
+                          <div>
+                            <p className="text-sm text-gray-500 mb-2">Skills</p>
+                            <div className="flex flex-wrap gap-2">
+                              {app.skills.map((skill) => (
+                                <span
+                                  key={skill}
+                                  className="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium"
+                                >
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
                         )}
                       </div>
-                    </div>
 
-                    {/* Actions */}
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-gray-900">
-                        Update Status
-                      </h4>
-                      <select
-                        value={app.status}
-                        onChange={(e) =>
-                          handleStatusChange(app.id, e.target.value)
-                        }
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
-                      >
-                        <option value="pending">Pending Review</option>
-                        <option value="reviewing">Under Review</option>
-                        <option value="interview">Interview</option>
-                        <option value="offered">Offer Sent</option>
-                        <option value="hired">Hired</option>
-                        <option value="rejected">Rejected</option>
-                      </select>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Notes
-                        </label>
-                        <textarea
-                          defaultValue={app.notes}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none text-sm"
-                          rows={3}
-                          placeholder="Add internal notes..."
-                        />
+                      {/* Cover Letter & Resume */}
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900">Documents</h4>
+                        {app.resumeId ? (
+                          <button className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700">
+                            <FileText className="w-4 h-4" />
+                            View Resume
+                            <ExternalLink className="w-3 h-3" />
+                          </button>
+                        ) : (
+                          <p className="text-sm text-gray-500">No resume uploaded</p>
+                        )}
+                        {app.coverLetter && (
+                          <div>
+                            <p className="text-sm text-gray-500 mb-2">Cover Letter</p>
+                            <p className="text-sm text-gray-700 bg-white p-3 rounded-lg border border-gray-200">
+                              {app.coverLetter}
+                            </p>
+                          </div>
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
-                          Send Email
-                        </button>
-                        <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
-                          Schedule
-                        </button>
+                      {/* Actions */}
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900">
+                          Update Status
+                        </h4>
+                        <select
+                          value={app.status}
+                          onChange={(e) =>
+                            handleStatusChange(app.id, e.target.value as Application["status"])
+                          }
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                        >
+                          <option value="pending">Pending Review</option>
+                          <option value="reviewing">Under Review</option>
+                          <option value="interview">Interview</option>
+                          <option value="offered">Offer Sent</option>
+                          <option value="hired">Hired</option>
+                          <option value="rejected">Rejected</option>
+                        </select>
+
+                        {app.notes && (
+                          <div>
+                            <p className="text-sm text-gray-500 mb-1">Notes</p>
+                            <p className="text-sm text-gray-700">{app.notes}</p>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={`mailto:${app.email}`}
+                            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm text-center"
+                          >
+                            Send Email
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        {filteredApplications.length === 0 && (
+                )}
+              </div>
+            );
+          })
+        ) : (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500">
-              No applications found matching your criteria
+              {applications.length === 0
+                ? "No applications yet"
+                : "No applications found matching your criteria"}
             </p>
           </div>
         )}
