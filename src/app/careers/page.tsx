@@ -135,6 +135,46 @@ export default function CareersPage() {
     setSubmitting(true);
 
     try {
+      let resumeId = null;
+
+      // Upload resume if one is selected
+      if (resumeFile) {
+        // Step 1: Get presigned upload URL from our API
+        const uploadResponse = await fetch("/api/resume/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: formData.email, // Use email as userId for anonymous users
+            fileName: resumeFile.name,
+            fileType: resumeFile.type,
+            fileSize: resumeFile.size,
+          }),
+        });
+
+        if (!uploadResponse.ok) {
+          const data = await uploadResponse.json();
+          throw new Error(data.error || "Failed to upload resume");
+        }
+
+        const { resumeId: newResumeId, uploadUrl } = await uploadResponse.json();
+
+        // Step 2: Upload file directly to S3 using presigned URL
+        const s3Response = await fetch(uploadUrl, {
+          method: "PUT",
+          body: resumeFile,
+          headers: {
+            "Content-Type": resumeFile.type,
+          },
+        });
+
+        if (!s3Response.ok) {
+          throw new Error("Failed to upload resume to storage");
+        }
+
+        resumeId = newResumeId;
+      }
+
+      // Step 3: Submit application with resumeId
       const response = await fetch("/api/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -144,6 +184,7 @@ export default function CareersPage() {
           email: formData.email,
           phone: formData.phone,
           coverLetter: formData.coverLetter,
+          resumeId: resumeId,
         }),
       });
 
