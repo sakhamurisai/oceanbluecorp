@@ -9,10 +9,10 @@ import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 const slides = [
   {
     id: 1,
-    title: "Enterprise tech",
-    highlight: "without the headache",
+    title: "Technology. Talent. Transformation.",
+    highlight: "Delivered with Precision.",
     description:
-      "ERP, cloud, and AI that actually makes sense. We make complex technology feel simple.",
+      "Ocean Blue provides IT staffing, enterprise solutions, and managed services that help organizations modernize, scale, and operate with confidence.",
     image: "https://images.unsplash.com/photo-1551434678-e076c223a692?w=1920&q=80",
     cta: "Start a conversation",
     ctaLink: "/contact",
@@ -24,7 +24,7 @@ const slides = [
     description:
       "CRM that doesn't feel like CRM. Simple, intuitive, and actually useful from day one.",
     image: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1920&q=80",
-    cta: "Explore Salesforce",
+    cta: "Explore Services",
     ctaLink: "/services#salesforce",
   },
   {

@@ -22,6 +22,7 @@ import {
   HelpCircle,
   PanelLeftClose,
   PanelLeft,
+  MessageSquare,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth, UserRole } from "@/lib/auth";
@@ -33,6 +34,7 @@ const navigation = [
   { name: "Content", href: "/admin/content", icon: FileText, roles: [UserRole.ADMIN] },
   { name: "Job Postings", href: "/admin/jobs", icon: Briefcase, roles: [UserRole.ADMIN, UserRole.HR] },
   { name: "Applications", href: "/admin/applications", icon: Users, roles: [UserRole.ADMIN, UserRole.HR] },
+  { name: "Contacts", href: "/admin/contacts", icon: MessageSquare, roles: [UserRole.ADMIN, UserRole.HR] },
   { name: "Settings", href: "/admin/settings", icon: Settings, roles: [UserRole.ADMIN] },
 ];
 

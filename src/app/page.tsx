@@ -21,20 +21,9 @@ import {
   Settings,
   Headphones,
   Play,
-  Factory,
-  ShoppingCart,
-  Landmark,
-  Stethoscope,
-  Wallet,
-  Monitor,
   ChevronRight,
   Quote,
   Compass,
-  Sun,
-  HeartHandshake,
-  Gauge,
-  Feather,
-  Sparkles,
 } from "lucide-react";
 
 // ============================================================================
@@ -124,47 +113,19 @@ const stats = [
 ];
 
 const industries = [
-  { name: "Manufacturing", icon: Factory, gradient: "from-blue-600 to-indigo-600", count: "150+", bg: "bg-blue-50" },
-  { name: "Retail", icon: ShoppingCart, gradient: "from-cyan-500 to-blue-500", count: "80+", bg: "bg-cyan-50" },
-  { name: "Government", icon: Landmark, gradient: "from-indigo-500 to-purple-500", count: "40+", bg: "bg-indigo-50" },
-  { name: "Healthcare", icon: Stethoscope, gradient: "from-teal-500 to-cyan-500", count: "60+", bg: "bg-teal-50" },
-  { name: "Financial", icon: Wallet, gradient: "from-amber-500 to-orange-500", count: "90+", bg: "bg-amber-50" },
-  { name: "Technology", icon: Monitor, gradient: "from-violet-500 to-purple-500", count: "120+", bg: "bg-violet-50" },
+  { name: "Manufacturing", logo: "/industry-alt.svg", gradient: "from-blue-600 to-indigo-600", bg: "bg-blue-50" },
+  { name: "Retail", logo: "/icon-retail-commerce.svg", gradient: "from-cyan-500 to-blue-500",  bg: "bg-cyan-50" },
+  { name: "Government", logo: "/icon-public-sector.svg", gradient: "from-indigo-500 to-purple-500",  bg: "bg-indigo-50" },
+  { name: "Healthcare", logo: "/icon-healthcare.svg", gradient: "from-teal-500 to-cyan-500",  bg: "bg-teal-50" },
+  { name: "Financial", logo: "/icon-banking.svg", gradient: "from-amber-500 to-orange-500",  bg: "bg-amber-50" },
+  { name: "Technology", logo: "/chip-brain.svg", gradient: "from-violet-500 to-purple-500", bg: "bg-violet-50" },
 ];
 
-const principles = [
-  {
-    quote: "We show up. Every time. No excuses.",
-    author: "Mike Chen",
-    role: "Founder",
-    icon: Sun,
-    color: "amber",
-    gradient: "from-amber-500 to-orange-500",
-  },
-  {
-    quote: "Your win is our win. Simple as that.",
-    author: "Sarah Martinez",
-    role: "Client Success",
-    icon: HeartHandshake,
-    color: "rose",
-    gradient: "from-rose-500 to-pink-500",
-  },
-  {
-    quote: "We fix things. Sometimes before they break.",
-    author: "Alex Thompson",
-    role: "Engineering Lead",
-    icon: Gauge,
-    color: "blue",
-    gradient: "from-blue-500 to-cyan-500",
-  },
-  {
-    quote: "No jargon. Just humans talking to humans.",
-    author: "Jen Walsh",
-    role: "Sales Director",
-    icon: Feather,
-    color: "cyan",
-    gradient: "from-cyan-500 to-teal-500",
-  },
+const sponsors = [
+  { name: "Databricks", logo: "/databricks.svg" },
+  { name: "Snowflake", logo: "/snowflake.svg" },
+  { name: "AWS", logo: "/aws.svg" },
+  { name: "Blueiq", logo: "/logo_medium.webp" },
 ];
 
 const testimonials = [
@@ -192,12 +153,12 @@ const testimonials = [
 ];
 
 const partners = [
-  { name: "SAP", logo: "https://upload.wikimedia.org/wikipedia/commons/5/59/SAP_2011_logo.svg" },
-  { name: "Microsoft", logo: "https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg" },
-  { name: "Salesforce", logo: "https://upload.wikimedia.org/wikipedia/commons/f/f9/Salesforce.com_logo.svg" },
-  { name: "AWS", logo: "https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg" },
-  { name: "Google Cloud", logo: "https://upload.wikimedia.org/wikipedia/commons/5/51/Google_Cloud_logo.svg" },
-  { name: "Oracle", logo: "https://upload.wikimedia.org/wikipedia/commons/5/50/Oracle_logo.svg" },
+  { name: "Ohio", logo: "https://development.ohio.gov/wps/wcm/connect/gov/7efff5ea-f9fd-4c0f-9a71-401183103f50/development-logo.png?MOD=AJPERES" },
+  { name: "HGS", logo: "/hgs.svg" },
+  { name: "Dieboldnixdorf", logo: "https://www.dieboldnixdorf.com/-/media/diebold/images/global/logo/dn-color-logo.svg" },
+  { name: "Satyawholesale", logo: "https://www.satyawholesalers.com/_next/image?url=https%3A%2F%2Fsatyawholesalers.net%2Fstorage%2F3288%2Fsatya-wholesale-logo-(1).png&w=1920&q=75" },
+  { name: "CityBareque", logo: "/citybarbeque.svg" },
+  { name: "Tacos", logo: "/tacos.png" },
 ];
 
 // ============================================================================
@@ -434,138 +395,116 @@ export default function Home() {
         </div>
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
-            {/* Stats - Left side */}
-            <div>
-              <motion.div
-                initial={{ opacity: 0, x: -30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                className="mb-6"
-              >
-                <span className="text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-[0.2em]">
-                  By the numbers
-                </span>
-              </motion.div>
+          {/* Stats Section */}
+          <div className="text-center mb-12 md:mb-16">
+            <motion.span
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-[0.2em] mb-4 block"
+            >
+              By the numbers
+            </motion.span>
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="text-2xl md:text-3xl lg:text-4xl font-light text-gray-900 font-[family-name:var(--font-space-grotesk)]"
+            >
+              Our Track Record of{" "}
+              <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent font-medium">
+                Excellence
+              </span>
+            </motion.h2>
+          </div>
 
-              <motion.h2
-                initial={{ opacity: 0, x: -30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.1 }}
-                className="heading-section text-gray-900 mb-10 md:mb-12"
-              >
-                We keep
-                <br />
-                <span className="relative inline-block">
-                  <span className="relative z-10 bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent font-medium">
-                    score
-                  </span>
-                  <motion.span
-                    initial={{ width: 0 }}
-                    whileInView={{ width: "100%" }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.6, delay: 0.3 }}
-                    className="absolute -bottom-1 left-0 h-3 bg-gradient-to-r from-amber-200 to-orange-200 opacity-50 -z-0 rounded-full"
-                  />
-                </span>
-              </motion.h2>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-16 md:mb-20">
+            {stats.map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <motion.div
+                  key={stat.label}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.1 + index * 0.08 }}
+                  className="group"
+                >
+                  <div className="relative bg-white rounded-2xl p-6 md:p-8 border border-gray-100 hover:border-gray-200 hover:shadow-xl transition-all duration-300 text-center h-full">
+                    {/* Gradient accent */}
+                    <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-gradient-to-r ${stat.color} rounded-b-full`} />
 
-              <div className="space-y-6 md:space-y-8">
-                {stats.map((stat, index) => {
-                  const Icon = stat.icon;
-                  return (
-                    <motion.div
-                      key={stat.label}
-                      initial={{ opacity: 0, x: -30 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.2 + index * 0.1 }}
-                      className="flex items-center gap-5 md:gap-6 group"
-                    >
-                      <div
-                        className={`w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:shadow-xl transition-all duration-300`}
-                      >
-                        <Icon className="w-7 h-7 md:w-8 md:h-8 text-white" />
-                      </div>
-                      <div>
-                        <div className="text-2xl md:text-3xl font-light text-gray-900 mb-0.5 font-[family-name:var(--font-space-grotesk)]">
-                          {stat.value}
-                        </div>
-                        <div className="text-sm text-gray-500">{stat.label}</div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
+                    {/* Icon */}
+                    <div className={`w-12 h-12 md:w-14 md:h-14 mx-auto mb-4 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                      <Icon className="w-6 h-6 md:w-7 md:h-7 text-white" />
+                    </div>
+
+                    {/* Value */}
+                    <div className="text-3xl md:text-4xl lg:text-5xl font-light text-gray-900 mb-2 font-[family-name:var(--font-space-grotesk)]">
+                      {stat.value}
+                    </div>
+
+                    {/* Label */}
+                    <div className="text-sm md:text-base text-gray-500 leading-tight">
+                      {stat.label}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {/* Partners Section */}
+          <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-3xl p-8 md:p-12 lg:p-16 overflow-hidden">
+            {/* Background decorations */}
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl" />
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl" />
             </div>
 
-            {/* Philosophy - Right side */}
-            <div>
+            <div className="relative z-10">
               <motion.div
-                initial={{ opacity: 0, x: 30 }}
-                whileInView={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className="mb-6"
+                className="text-center mb-10 md:mb-12"
               >
-                <span className="text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-[0.2em]">
-                  Our philosophy
+                <span className="text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-[0.2em] mb-3 block">
+                  Trusted by Industry Leaders
                 </span>
+                <h3 className="text-2xl md:text-3xl font-light text-white font-[family-name:var(--font-space-grotesk)]">
+                  Our{" "}
+                  <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent font-medium">
+                    Partners
+                  </span>
+                </h3>
               </motion.div>
 
-              <motion.h2
-                initial={{ opacity: 0, x: 30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.1 }}
-                className="heading-section text-gray-900 mb-10 md:mb-12"
-              >
-                What we
-                <br />
-                <span className="relative inline-block">
-                  <span className="relative z-10 bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent font-medium">
-                    believe
-                  </span>
-                  <motion.span
-                    initial={{ width: 0 }}
-                    whileInView={{ width: "100%" }}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 max-w-3xl mx-auto">
+                {sponsors.map((sponsor, index) => (
+                  <motion.div
+                    key={sponsor.name}
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    whileInView={{ opacity: 1, y: 0, scale: 1 }}
                     viewport={{ once: true }}
-                    transition={{ duration: 0.6, delay: 0.3 }}
-                    className="absolute -bottom-1 left-0 h-3 bg-gradient-to-r from-blue-200 to-cyan-200 opacity-50 -z-0 rounded-full"
-                  />
-                </span>
-              </motion.h2>
-
-              <div className="space-y-3 md:space-y-4">
-                {principles.map((item, index) => {
-                  const Icon = item.icon;
-                  return (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: 30 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.2 + index * 0.1 }}
-                      className="relative bg-white rounded-2xl p-5 md:p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 group"
-                    >
-                      <div className="flex gap-4">
-                        <div
-                          className={`w-11 h-11 md:w-12 md:h-12 rounded-xl bg-gradient-to-br ${item.gradient} flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform`}
-                        >
-                          <Icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-gray-800 text-base md:text-lg mb-2 leading-relaxed">
-                            "{item.quote}"
-                          </p>
-                          <p className="text-sm text-gray-400">
-                            {item.author} <span className="text-gray-300">•</span> {item.role}
-                          </p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
+                    transition={{ delay: 0.1 + index * 0.08 }}
+                    className="group"
+                  >
+                    <div className="bg-white backdrop-blur-sm rounded-2xl p-5 md:p-6 border border-white/10 hover:border-white/25 hover:bg-white/15 transition-all duration-300 flex items-center justify-center h-24 md:h-28">
+                      <Image
+                        src={sponsor.logo}
+                        alt={sponsor.name}
+                        width={120}
+                        height={50}
+                        className="h-10 md:h-12 w-auto object-contain opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"
+                        unoptimized
+                      />
+                    </div>
+                    <p className="text-sm text-gray-400 text-center mt-2 font-medium">{sponsor.name}</p>
+                  </motion.div>
+                ))}
               </div>
             </div>
           </div>
@@ -583,47 +522,45 @@ export default function Home() {
           />
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
-            {industries.map((industry, index) => {
-              const Icon = industry.icon;
-              return (
-                <motion.div
-                  key={industry.name}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.05 }}
-                  className="group cursor-pointer"
-                >
-                  <div className="relative bg-gray-50 rounded-2xl p-5 md:p-6 text-center hover:bg-white transition-all duration-300 card-lift border border-transparent hover:border-gray-100">
-                    {/* Hover gradient */}
-                    <div
-                      className={`absolute inset-0 bg-gradient-to-br ${industry.gradient} opacity-0 group-hover:opacity-[0.04] rounded-2xl transition-opacity duration-300`}
+            {industries.map((industry, index) => (
+              <motion.div
+                key={industry.name}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.05 }}
+                className="group cursor-pointer"
+              >
+                <div className="relative bg-gray-50 rounded-2xl p-5 md:p-6 text-center hover:bg-white transition-all duration-300 card-lift border border-transparent hover:border-gray-100">
+                  {/* Hover gradient */}
+                  <div
+                    className={`absolute inset-0 bg-gradient-to-br ${industry.gradient} opacity-0 group-hover:opacity-[0.04] rounded-2xl transition-opacity duration-300`}
+                  />
+
+                  <div
+                    className={`w-14 h-14 md:w-16 md:h-16 mx-auto mb-3 rounded-xl ${industry.bg} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}
+                  >
+                    <Image
+                      src={industry.logo}
+                      alt={industry.name}
+                      width={32}
+                      height={32}
+                      className="w-7 h-7 md:w-8 md:h-8 object-contain"
                     />
-
-                    <div
-                      className={`w-14 h-14 md:w-16 md:h-16 mx-auto mb-3 rounded-xl ${industry.bg} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}
-                    >
-                      <div className={`w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br ${industry.gradient} rounded-lg flex items-center justify-center`}>
-                        <Icon className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                      </div>
-                    </div>
-
-                    <h3 className="font-medium text-gray-900 mb-1 text-sm md:text-base">
-                      {industry.name}
-                    </h3>
-
-                    <p className="text-xs text-gray-400">
-                      {industry.count} projects
-                    </p>
-
-                    {/* Chevron on hover */}
-                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <ChevronRight className="w-4 h-4 text-gray-300" />
-                    </div>
                   </div>
-                </motion.div>
-              );
-            })}
+
+                  <h3 className="font-medium text-gray-900 mb-1 text-sm md:text-base">
+                    {industry.name}
+                  </h3>
+
+
+                  {/* Chevron on hover */}
+                  <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ChevronRight className="w-4 h-4 text-gray-300" />
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
@@ -753,20 +690,20 @@ export default function Home() {
                 animate={{ rotate: [0, 10, -10, 0] }}
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
               >
-                <Compass className="w-8 h-8 md:w-10 md:h-10 text-white" />
+                <Image src="/goals.svg" alt="Goals" height={40} width={20} className="w-8 h-8 md:w-10 md:h-10 text-white" />
               </motion.div>
             </motion.div>
 
             <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light text-white mb-5 md:mb-6 font-[family-name:var(--font-space-grotesk)] leading-tight">
-              Ready to stop
+              Ready to Strengthen
               <br />
               <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-cyan-300 bg-clip-text text-transparent font-medium">
-                worrying about tech?
+                Your Technology and Your Team?
               </span>
             </h2>
 
             <p className="text-base md:text-lg text-white/50 mb-10 md:mb-12 max-w-2xl mx-auto leading-relaxed">
-              Let's talk. No pressure, no jargon, just humans having a conversation about your goals.
+              Let’s talk about your goals — no jargon, no pressure.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

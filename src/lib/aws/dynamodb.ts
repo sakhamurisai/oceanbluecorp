@@ -79,6 +79,22 @@ export interface Job {
   applicationsCount?: number;
 }
 
+export interface Contact {
+  id: string; // PK
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  company: string;
+  jobTitle?: string;
+  inquiryType: string;
+  message: string;
+  status: "new" | "read" | "responded" | "archived";
+  createdAt: string;
+  updatedAt?: string;
+  notes?: string;
+}
+
 // ===========================================
 // Resume Operations
 // ===========================================
@@ -439,6 +455,138 @@ export async function deleteJob(id: string): Promise<{ success: boolean; error?:
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to delete job",
+    };
+  }
+}
+
+// ===========================================
+// Contact Operations
+// ===========================================
+
+export async function createContact(contact: Contact): Promise<{ success: boolean; error?: string }> {
+  try {
+    await docClient.send(
+      new PutCommand({
+        TableName: dynamoDBConfig.tables.contacts,
+        Item: contact,
+      })
+    );
+    return { success: true };
+  } catch (error) {
+    console.error("Error creating contact:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to create contact",
+    };
+  }
+}
+
+export async function getContact(id: string): Promise<{ success: boolean; data?: Contact; error?: string }> {
+  try {
+    const result = await docClient.send(
+      new GetCommand({
+        TableName: dynamoDBConfig.tables.contacts,
+        Key: { id },
+      })
+    );
+    return { success: true, data: result.Item as Contact | undefined };
+  } catch (error) {
+    console.error("Error getting contact:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to get contact",
+    };
+  }
+}
+
+export async function getAllContacts(status?: Contact["status"]): Promise<{ success: boolean; data?: Contact[]; error?: string }> {
+  try {
+    let result;
+
+    if (status) {
+      result = await docClient.send(
+        new ScanCommand({
+          TableName: dynamoDBConfig.tables.contacts,
+          FilterExpression: "#status = :status",
+          ExpressionAttributeNames: {
+            "#status": "status",
+          },
+          ExpressionAttributeValues: {
+            ":status": status,
+          },
+        })
+      );
+    } else {
+      result = await docClient.send(
+        new ScanCommand({
+          TableName: dynamoDBConfig.tables.contacts,
+        })
+      );
+    }
+
+    return { success: true, data: result.Items as Contact[] };
+  } catch (error) {
+    console.error("Error getting contacts:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to get contacts",
+    };
+  }
+}
+
+export async function updateContactStatus(
+  id: string,
+  status: Contact["status"],
+  notes?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const updateExpressions: string[] = ["#status = :status", "updatedAt = :updatedAt"];
+    const expressionAttributeValues: Record<string, unknown> = {
+      ":status": status,
+      ":updatedAt": new Date().toISOString(),
+    };
+    const expressionAttributeNames: Record<string, string> = {
+      "#status": "status",
+    };
+
+    if (notes !== undefined) {
+      updateExpressions.push("notes = :notes");
+      expressionAttributeValues[":notes"] = notes;
+    }
+
+    await docClient.send(
+      new UpdateCommand({
+        TableName: dynamoDBConfig.tables.contacts,
+        Key: { id },
+        UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+        ExpressionAttributeNames: expressionAttributeNames,
+        ExpressionAttributeValues: expressionAttributeValues,
+      })
+    );
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating contact status:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update contact",
+    };
+  }
+}
+
+export async function deleteContact(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    await docClient.send(
+      new DeleteCommand({
+        TableName: dynamoDBConfig.tables.contacts,
+        Key: { id },
+      })
+    );
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting contact:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to delete contact",
     };
   }
 }

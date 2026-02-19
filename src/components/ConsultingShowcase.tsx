@@ -8,30 +8,27 @@ import {
   Rocket,
   TrendingUp,
   ArrowRight,
-  Sparkles,
-  Compass,
   Layers,
   Zap,
-  Globe,
   Users,
-  LineChart,
   ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 const processSteps = [
   {
     number: "01",
     title: "Listen",
-    description: "We start by understanding your business, not just your requirements.",
+    description: "We start by understanding your goals, challenges, and environment.",
     icon: Lightbulb,
     gradient: "from-amber-500 to-orange-500",
     bg: "bg-amber-50",
   },
   {
     number: "02",
-    title: "Think",
-    description: "Strategic planning that considers every angle and possibility.",
+    title: "Plan",
+    description: "We design a practical, outcome‑driven strategy tailored to your needs.",
     icon: Target,
     gradient: "from-blue-500 to-cyan-500",
     bg: "bg-blue-50",
@@ -39,7 +36,7 @@ const processSteps = [
   {
     number: "03",
     title: "Build",
-    description: "Agile execution with continuous feedback and iteration.",
+    description: "We execute with agility, transparency, and continuous collaboration.",
     icon: Rocket,
     gradient: "from-purple-500 to-pink-500",
     bg: "bg-purple-50",
@@ -47,7 +44,7 @@ const processSteps = [
   {
     number: "04",
     title: "Evolve",
-    description: "Long-term partnership focused on continuous improvement.",
+    description: "We support long‑term success with ongoing optimization and guidance.",
     icon: TrendingUp,
     gradient: "from-emerald-500 to-teal-500",
     bg: "bg-emerald-50",
@@ -56,59 +53,37 @@ const processSteps = [
 
 const capabilities = [
   {
-    name: "Enterprise Architecture",
-    description: "Scalable systems that grow with you",
-    icon: Layers,
+    name: "IT Staffing & Talent Solutions",
+    description: "Skilled, vetted professionals across cloud, cybersecurity, ERP, Salesforce, data, and more.",
+    icon: Users,
     gradient: "from-blue-500 to-indigo-500",
   },
   {
-    name: "Digital Strategy",
-    description: "Roadmaps that actually make sense",
-    icon: Compass,
+    name: "Enterprise IT Services",
+    description: "Cloud, ERP, Salesforce, AI, and integration services designed for real business outcomes.",
+    icon: Layers,
     gradient: "from-cyan-500 to-blue-500",
   },
   {
-    name: "Process Optimization",
-    description: "Doing things better, not just faster",
+    name: "Managed Services",
+    description: "Proactive support, monitoring, and optimization to keep your systems running smoothly.",
     icon: Zap,
     gradient: "from-amber-500 to-orange-500",
   },
   {
-    name: "Change Management",
-    description: "Getting your team on board",
-    icon: Users,
+    name: "Digital Transformation & Advisory",
+    description: "Strategy, architecture, and process optimization that align technology with business goals.",
+    icon: Target,
     gradient: "from-rose-500 to-pink-500",
   },
-  {
-    name: "Technology Integration",
-    description: "Making old and new play nice",
-    icon: Globe,
-    gradient: "from-violet-500 to-purple-500",
-  },
-  {
-    name: "Performance Analytics",
-    description: "Data you can actually use",
-    icon: LineChart,
-    gradient: "from-teal-500 to-cyan-500",
-  },
+  
 ];
 
-const principles = [
-  {
-    quote: "We don't just deliver projects. We build relationships.",
-    author: "Alex Chen",
-    role: "Principal Consultant",
-  },
-  {
-    quote: "The best solution is one your team will actually use.",
-    author: "Maria Garcia",
-    role: "Strategy Lead",
-  },
-  {
-    quote: "Complex problems deserve simple answers.",
-    author: "James Wilson",
-    role: "Technical Director",
-  },
+const certifications = [
+  { name: "Ohio WBE", logo: "/wbe.png" },
+  { name: "OHIO MBE", logo: "/ohiombe.png" },
+  { name: "Ohio Edge", logo: "/edge.png" },
+  { name: "MBE", logo: "/mbe.png" },
 ];
 
 export default function ConsultingShowcase() {
@@ -164,11 +139,11 @@ export default function ConsultingShowcase() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="heading-section text-gray-900 mb-5 md:mb-6"
           >
-            We turn complexity into
+            We Deliver the Technology and Talent That Move Your 
             <br />
             <span className="relative inline-block">
               <span className="relative z-10 bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent font-medium">
-                clarity
+                 Business Forward
               </span>
               <motion.span
                 initial={{ scaleX: 0 }}
@@ -188,8 +163,7 @@ export default function ConsultingShowcase() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-base md:text-lg text-gray-500 leading-relaxed"
           >
-            No jargon. No cookie-cutter approaches. Just honest conversations
-            and solutions that actually work for your business.
+            From IT staffing to enterprise solutions, Ocean Blue helps organizations build stronger teams, modernize systems, and accelerate digital transformation — without the complexity.
           </motion.p>
         </div>
 
@@ -310,19 +284,15 @@ export default function ConsultingShowcase() {
           </motion.div>
         </div>
 
-        {/* Guiding Principles */}
+        {/* Certifications */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="relative bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-3xl p-8 md:p-12 lg:p-16 overflow-hidden"
+          className="relative bg-transparent rounded-3xl p-8 md:p-12 lg:p-16 overflow-hidden"
         >
-          {/* Background decoration */}
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-0 right-0 w-48 h-48 md:w-64 md:h-64 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full blur-3xl opacity-40" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 md:w-64 md:h-64 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full blur-3xl opacity-40" />
-          </div>
+         
 
           <div className="relative z-10">
             <motion.div
@@ -330,32 +300,37 @@ export default function ConsultingShowcase() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-center mb-10 md:mb-12"
+              className="text-center mb-10 md:mb-14"
             >
-              <span className="text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-[0.2em]">
-                Our guiding principles
+              <span className="text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-[0.2em] mb-3 block">
+                Trusted & Certified
               </span>
+              <h3 className="text-2xl md:text-3xl font-light text-white font-[family-name:var(--font-space-grotesk)]">
+                Our{" "}
+                <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent font-medium">
+                  Certifications
+                </span>
+              </h3>
             </motion.div>
 
-            <div className="grid md:grid-cols-3 gap-6 md:gap-8">
-              {principles.map((principle, index) => (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 max-w-4xl mx-auto">
+              {certifications.map((cert, index) => (
                 <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  key={cert.name}
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
                   viewport={{ once: true }}
-                  transition={{ delay: 0.2 + index * 0.1 }}
-                  className="text-center"
+                  transition={{ delay: 0.1 + index * 0.08 }}
+                  className="group"
                 >
-                  <div className="mb-3 md:mb-4 flex justify-center">
-                    <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-gray-300" />
-                  </div>
-                  <p className="text-gray-700 text-base md:text-lg mb-3 md:mb-4 italic leading-relaxed">
-                    "{principle.quote}"
-                  </p>
-                  <div>
-                    <p className="font-medium text-gray-900 text-sm">{principle.author}</p>
-                    <p className="text-xs text-gray-400">{principle.role}</p>
+                  <div className=" backdrop-blur-sm rounded-2xl p-6 md:p-8 transition-all duration-300 flex flex-col items-center justify-center h-32 md:h-40">
+                    <Image
+                      src={cert.logo}
+                      alt={cert.name}
+                      width={140}
+                      height={80}
+                      className="h-16 md:h-20 w-auto object-contain opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"
+                    />
                   </div>
                 </motion.div>
               ))}

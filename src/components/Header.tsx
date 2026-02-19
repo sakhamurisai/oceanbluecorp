@@ -181,19 +181,16 @@ export default function Header() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Close mobile menu when clicking outside
+  // Lock body scroll when mobile menu is open
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (mobileMenuOpen) {
-        const target = e.target as HTMLElement;
-        if (!target.closest('nav')) {
-          setMobileMenuOpen(false);
-          setMobileDropdown(null);
-        }
-      }
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
     };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
   }, [mobileMenuOpen]);
 
   const getDropdownItems = (type: string) => {
@@ -422,18 +419,31 @@ export default function Header() {
             </button>
           </div>
 
-          {/* Mobile menu - Full screen overlay */}
-          <AnimatePresence>
-            {mobileMenuOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.2 }}
-                className="lg:hidden fixed inset-0 top-16 bg-white z-40 overflow-y-auto"
-                style={{ maxHeight: 'calc(100vh - 64px)' }}
-              >
-                <div className="container mx-auto px-4 py-6">
+          {/* Mobile menu - Simple overlay without animations */}
+          {mobileMenuOpen && (
+            <>
+              {/* Backdrop */}
+              <div
+                className="lg:hidden fixed inset-0 top-16 md:top-20 bg-black/20 z-40"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setMobileDropdown(null);
+                }}
+              />
+              {/* Menu Panel */}
+              <div className="lg:hidden fixed top-16 md:top-20 right-0 bottom-0 w-full sm:w-96 bg-white z-50 overflow-y-auto shadow-xl">
+                <div className="px-4 sm:px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
+                  <span className="font-semibold text-gray-900">Menu</span>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setMobileDropdown(null);
+                    }}
+                    className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                  </button>
+                </div>
+                <div className="px-4 sm:px-6 py-6">
                   <div className="space-y-1">
                     {navigation.map((item) => (
                       <div key={item.name} className="border-b border-gray-100 last:border-b-0">
@@ -449,58 +459,50 @@ export default function Header() {
                               }`} />
                             </button>
 
-                            <AnimatePresence>
-                              {mobileDropdown === item.dropdownType && (
-                                <motion.div
-                                  initial={{ opacity: 0, height: 0 }}
-                                  animate={{ opacity: 1, height: "auto" }}
-                                  exit={{ opacity: 0, height: 0 }}
-                                  transition={{ duration: 0.2 }}
-                                  className="pb-4 space-y-2"
-                                >
-                                  {getDropdownItems(item.dropdownType || "").map((dropItem) => (
-                                    <Link
-                                      key={dropItem.name}
-                                      href={dropItem.href}
-                                      className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all"
-                                      onClick={() => {
-                                        setMobileMenuOpen(false);
-                                        setMobileDropdown(null);
-                                      }}
-                                    >
-                                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${dropItem.gradient} flex items-center justify-center flex-shrink-0`}>
-                                        <dropItem.icon className="w-5 h-5 text-white" />
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="font-medium text-gray-900 text-sm">
-                                          {dropItem.name}
-                                        </p>
-                                        <p className="text-xs text-gray-500">
-                                          {dropItem.description}
-                                        </p>
-                                      </div>
-                                      <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                    </Link>
-                                  ))}
-                                  
-                                  {item.dropdownType !== "about" && (
-                                    <Link
-                                      href={item.dropdownType === "services" ? "/services" : "/resources"}
-                                      className="flex items-center justify-between p-3 rounded-xl bg-blue-50 hover:bg-blue-100 transition-all mt-2"
-                                      onClick={() => {
-                                        setMobileMenuOpen(false);
-                                        setMobileDropdown(null);
-                                      }}
-                                    >
-                                      <span className="text-sm font-medium text-blue-700">
-                                        View all {item.dropdownType}
-                                      </span>
-                                      <ArrowRight className="w-4 h-4 text-blue-600" />
-                                    </Link>
-                                  )}
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
+                            {mobileDropdown === item.dropdownType && (
+                              <div className="pb-4 space-y-2">
+                                {getDropdownItems(item.dropdownType || "").map((dropItem) => (
+                                  <Link
+                                    key={dropItem.name}
+                                    href={dropItem.href}
+                                    className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all"
+                                    onClick={() => {
+                                      setMobileMenuOpen(false);
+                                      setMobileDropdown(null);
+                                    }}
+                                  >
+                                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${dropItem.gradient} flex items-center justify-center flex-shrink-0`}>
+                                      <dropItem.icon className="w-5 h-5 text-white" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-gray-900 text-sm">
+                                        {dropItem.name}
+                                      </p>
+                                      <p className="text-xs text-gray-500">
+                                        {dropItem.description}
+                                      </p>
+                                    </div>
+                                    <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                  </Link>
+                                ))}
+
+                                {item.dropdownType !== "about" && (
+                                  <Link
+                                    href={item.dropdownType === "services" ? "/services" : "/resources"}
+                                    className="flex items-center justify-between p-3 rounded-xl bg-blue-50 hover:bg-blue-100 transition-all mt-2"
+                                    onClick={() => {
+                                      setMobileMenuOpen(false);
+                                      setMobileDropdown(null);
+                                    }}
+                                  >
+                                    <span className="text-sm font-medium text-blue-700">
+                                      View all {item.dropdownType}
+                                    </span>
+                                    <ArrowRight className="w-4 h-4 text-blue-600" />
+                                  </Link>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <Link
@@ -516,7 +518,7 @@ export default function Header() {
                     ))}
                   </div>
 
-                  {/* Mobile Auth Section - Always visible at bottom */}
+                  {/* Mobile Auth Section */}
                   <div className="mt-8 pt-6 border-t border-gray-200">
                     {isLoading ? (
                       <div className="h-12 bg-gray-100 rounded-xl animate-pulse" />
@@ -573,9 +575,9 @@ export default function Header() {
                     )}
                   </div>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
+            </>
+          )}
         </nav>
       </header>
 
