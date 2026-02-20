@@ -131,25 +131,14 @@ const sponsors = [
 
 const testimonials = [
   {
-    quote: "They made SAP implementation feel like a conversation, not a root canal. Highly recommend.",
-    author: "Sarah Chen",
-    role: "CTO, TechForward Inc.",
+    quote: "It’s my pleasure to acknowledge OceanBlue resources outstanding contribution to the DN Projects and enhancements. Your resources have demonstrated high levels of skill and professionalism throughout the collaboration, and delivered good quality results that met our expectations and deadlines. I appreciate your support and dedication to our mutual success. I look forward to working with you again in the future.",
+    author: " Damodar Buchi Reddy",
     gradient: "from-indigo-600 to-purple-600",
-    image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
   },
   {
-    quote: "Finally, a tech partner who speaks both engineer and executive. Pure gold.",
-    author: "Michael Rodriguez",
-    role: "VP Operations, Global Retail",
+    quote: "My name is Ken Hamilton and I am one of the Senior Account Executives here at Mapsys, Incorporated. I have partnered with Ocean Blue Solutions for many years. I have found them to be trustworthy, honest, motivated and display a high degree of worth ethic. ",
+    author: " Ken Hamilton",
     gradient: "from-blue-600 to-cyan-600",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
-  },
-  {
-    quote: "The ROI was great. The relationship was better. That's rare in this industry.",
-    author: "Jennifer Walsh",
-    role: "Operations Director, FinServe",
-    gradient: "from-amber-500 to-orange-500",
-    image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop",
   },
 ];
 
@@ -174,6 +163,144 @@ const FloatingOrb = ({ className = "", delay = 0 }: { className?: string; delay?
     className={`absolute rounded-full blur-3xl pointer-events-none ${className}`}
   />
 );
+
+// Testimonials Carousel Component
+const TestimonialsCarousel = ({ testimonials }: { testimonials: { quote: string; author: string; gradient: string }[] }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+
+  // Auto-slide effect
+  useEffect(() => {
+    if (!isAutoPlaying) return;
+
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % testimonials.length);
+    }, 5000); // Change slide every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [isAutoPlaying, testimonials.length]);
+
+  const goToSlide = (index: number) => {
+    setCurrentIndex(index);
+    setIsAutoPlaying(false);
+    // Resume auto-play after 10 seconds of manual interaction
+    setTimeout(() => setIsAutoPlaying(true), 10000);
+  };
+
+  return (
+    <section className="py-20 md:py-24 lg:py-32 bg-gray-50 overflow-hidden">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto text-center mb-16 md:mb-20">
+          <motion.span
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-[0.2em] mb-4 block"
+          >
+            Client love
+          </motion.span>
+
+          <motion.h2
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="heading-section text-gray-900 mb-6"
+          >
+            People seem to{" "}
+            <span className="relative inline-block">
+              <span className="relative z-10 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-medium">
+                like us
+              </span>
+              <motion.span
+                initial={{ scaleX: 0 }}
+                whileInView={{ scaleX: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="absolute -bottom-1 left-0 right-0 h-3 bg-gradient-to-r from-indigo-200 to-purple-200 opacity-40 -z-0 rounded-full"
+                style={{ originX: 0 }}
+              />
+            </span>
+          </motion.h2>
+        </div>
+
+        {/* Carousel Container */}
+        <div className="relative max-w-4xl mx-auto">
+          {/* Slides */}
+          <div className="relative overflow-hidden">
+            <motion.div
+              key={currentIndex}
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -100 }}
+              transition={{ duration: 0.5, ease: "easeInOut" }}
+              className="w-full"
+            >
+              <div className="relative bg-white rounded-3xl p-8 md:p-12 lg:p-16 shadow-sm border border-gray-100">
+                {/* Background quote mark */}
+                <div className="absolute top-6 right-6 md:top-10 md:right-10">
+                  <Quote className="w-16 h-16 md:w-24 md:h-24 text-gray-100" />
+                </div>
+
+                {/* Content */}
+                <div className="relative z-10">
+                  <p className="text-gray-700 text-lg md:text-xl lg:text-2xl mb-8 md:mb-10 leading-relaxed font-light">
+                    &ldquo;{testimonials[currentIndex].quote}&rdquo;
+                  </p>
+
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br ${testimonials[currentIndex].gradient} flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-lg`}>
+                      {testimonials[currentIndex].author.trim().split(" ").map(n => n[0]).join("")}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900 text-base md:text-lg">
+                        {testimonials[currentIndex].author}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Gradient accent corner */}
+                  <div
+                    className={`absolute bottom-0 right-0 w-32 h-32 md:w-48 md:h-48 bg-gradient-to-br ${testimonials[currentIndex].gradient} opacity-[0.04] rounded-tl-[100px] pointer-events-none`}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Navigation Dots */}
+          <div className="flex justify-center gap-3 mt-8 md:mt-10">
+            {testimonials.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => goToSlide(index)}
+                className={`relative w-3 h-3 rounded-full transition-all duration-300 ${
+                  index === currentIndex
+                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 w-8"
+                    : "bg-gray-300 hover:bg-gray-400"
+                }`}
+                aria-label={`Go to testimonial ${index + 1}`}
+              />
+            ))}
+          </div>
+
+          {/* Progress Bar */}
+          <div className="mt-6 max-w-xs mx-auto">
+            <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+              <motion.div
+                key={`progress-${currentIndex}`}
+                initial={{ width: "0%" }}
+                animate={{ width: "100%" }}
+                transition={{ duration: 5, ease: "linear" }}
+                className="h-full bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
 
 const SectionHeader = ({
   eyebrow,
@@ -567,65 +694,7 @@ export default function Home() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-20 md:py-24 lg:py-32 bg-gray-50 overflow-hidden">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <SectionHeader
-            eyebrow="Client love"
-            title="People seem to"
-            highlight="like us"
-            highlightGradient="from-indigo-600 to-purple-600"
-          />
-
-          <div className="grid md:grid-cols-3 gap-5 md:gap-6 perspective">
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30, rotateX: 10 }}
-                whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="group preserve-3d"
-              >
-                <div className="relative bg-white rounded-2xl p-6 md:p-8 shadow-sm hover:shadow-xl transition-all duration-400 border border-gray-100 tilt-card">
-                  {/* Background quote mark */}
-                  <div className="absolute top-4 right-4 md:top-6 md:right-6">
-                    <Quote className="w-10 h-10 md:w-12 md:h-12 text-gray-100" />
-                  </div>
-
-                  {/* Content */}
-                  <div className="relative z-10">
-                    <p className="text-gray-700 text-sm md:text-base mb-6 leading-relaxed">
-                      "{testimonial.quote}"
-                    </p>
-
-                    <div className="flex items-center gap-3">
-                      <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden">
-                        <Image
-                          src={testimonial.image}
-                          alt={testimonial.author}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900 text-sm md:text-base">
-                          {testimonial.author}
-                        </p>
-                        <p className="text-xs md:text-sm text-gray-400">{testimonial.role}</p>
-                      </div>
-                    </div>
-
-                    {/* Gradient accent corner */}
-                    <div
-                      className={`absolute bottom-0 right-0 w-24 h-24 md:w-32 md:h-32 bg-gradient-to-br ${testimonial.gradient} opacity-[0.04] rounded-bl-[100px] pointer-events-none`}
-                    />
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <TestimonialsCarousel testimonials={testimonials} />
 
       {/* CTA Section */}
       <section ref={ctaRef} className="relative py-24 md:py-32 lg:py-40 overflow-hidden">
