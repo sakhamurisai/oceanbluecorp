@@ -1,21 +1,21 @@
 {
-  "name": "Ocean Blue Corporation",
-  "short_name": "OceanBlue",
-  "description": "Enterprise IT Solutions & Digital Transformation",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0066cc",
-  "icons": [
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ]
+	"name": "Ocean Blue Corporation",
+	"short_name": "OceanBlue",
+	"description": "Enterprise IT Solutions & Digital Transformation",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#ffffff",
+	"theme_color": "#0066cc",
+	"icons": [
+		{
+			"src": "/logo.webp",
+			"sizes": "192x192",
+			"type": "image/png/webp"
+		},
+		{
+			"src": "/logo.webp",
+			"sizes": "512x512",
+			"type": "image/png/wepb"
+		}
+	]
 }
