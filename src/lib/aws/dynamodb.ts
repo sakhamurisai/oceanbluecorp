@@ -8,57 +8,91 @@ import {
   DeleteCommand,
   ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { awsConfig, dynamoDBConfig } from "./config";
+
+// Read environment variables directly every time (no caching)
+const getEnvConfig = () => {
+  const accessKeyId = process.env.NEXT_AWS_ACCESS_KEY_ID || "";
+  const secretAccessKey = process.env.NEXT_AWS_SECRET_ACCESS_KEY || "";
+  const region = process.env.NEXT_PUBLIC_AWS_REGION || "us-east-2";
+  const endpoint = process.env.NEXT_AWS_DYNAMODB_ENDPOINT;
+
+  return {
+    accessKeyId,
+    secretAccessKey,
+    region,
+    endpoint,
+    tables: {
+      resumes: process.env.NEXT_AWS_DYNAMODB_TABLE_RESUMES || "oceanblue-resumes",
+      applications: process.env.NEXT_AWS_DYNAMODB_TABLE_APPLICATIONS || "oceanblue-applications",
+      jobs: process.env.NEXT_AWS_DYNAMODB_TABLE_JOBS || "oceanblue-jobs",
+      candidates: process.env.NEXT_AWS_DYNAMODB_TABLE_CANDIDATES || "oceanblue-candidates",
+      contacts: process.env.NEXT_AWS_DYNAMODB_TABLE_CONTACTS || "oceanblue-contacts",
+    },
+  };
+};
 
 // Check if AWS credentials are configured
 const isAwsConfigured = (): boolean => {
-  return !!(
-    awsConfig.credentials.accessKeyId &&
-    awsConfig.credentials.secretAccessKey &&
-    awsConfig.credentials.accessKeyId !== "" &&
-    awsConfig.credentials.secretAccessKey !== ""
-  );
+  const { accessKeyId, secretAccessKey } = getEnvConfig();
+  const configured = !!(accessKeyId && secretAccessKey && accessKeyId !== "" && secretAccessKey !== "");
+
+  if (!configured) {
+    console.log("AWS Config Check - accessKeyId present:", !!accessKeyId, "length:", accessKeyId?.length || 0);
+    console.log("AWS Config Check - secretAccessKey present:", !!secretAccessKey, "length:", secretAccessKey?.length || 0);
+  }
+
+  return configured;
 };
 
-// Initialize DynamoDB Client (only if configured)
-let dynamoClient: DynamoDBClient | null = null;
-let docClient: DynamoDBDocumentClient | null = null;
+// Create a fresh DynamoDB client (no caching to avoid stale credentials)
+const createDocClient = (): DynamoDBDocumentClient | null => {
+  const config = getEnvConfig();
 
-if (isAwsConfigured()) {
-  console.log("Initializing DynamoDB client with region:", awsConfig.region);
-  dynamoClient = new DynamoDBClient({
-    region: awsConfig.region,
-    credentials: awsConfig.credentials,
-    ...(dynamoDBConfig.endpoint && { endpoint: dynamoDBConfig.endpoint }),
+  if (!config.accessKeyId || !config.secretAccessKey) {
+    console.error("Cannot create DynamoDB client - missing credentials");
+    return null;
+  }
+
+  console.log("Creating DynamoDB client with region:", config.region);
+
+  const dynamoClient = new DynamoDBClient({
+    region: config.region,
+    credentials: {
+      accessKeyId: config.accessKeyId,
+      secretAccessKey: config.secretAccessKey,
+    },
+    ...(config.endpoint && { endpoint: config.endpoint }),
   });
 
-  // Document client for easier operations
-  docClient = DynamoDBDocumentClient.from(dynamoClient, {
+  return DynamoDBDocumentClient.from(dynamoClient, {
     marshallOptions: {
       removeUndefinedValues: true,
     },
   });
-  console.log("DynamoDB client initialized successfully");
-} else {
-  console.warn("AWS credentials not configured - DynamoDB operations will return empty results");
-}
+};
 
-// Helper to check if DB is available
-const checkDbAvailable = (): { available: boolean; error?: string } => {
+// Helper to check if DB is available and get client
+const checkDbAvailable = (): { available: boolean; client?: DynamoDBDocumentClient; error?: string } => {
   if (!isAwsConfigured()) {
     return {
       available: false,
       error: "AWS credentials not configured. Please set NEXT_AWS_ACCESS_KEY_ID and NEXT_AWS_SECRET_ACCESS_KEY environment variables.",
     };
   }
-  if (!docClient) {
+
+  const client = createDocClient();
+  if (!client) {
     return {
       available: false,
-      error: "DynamoDB client not initialized",
+      error: "DynamoDB client could not be initialized",
     };
   }
-  return { available: true };
+
+  return { available: true, client };
 };
+
+// Get table names (read fresh each time)
+const getTables = () => getEnvConfig().tables;
 
 // ===========================================
 // Types
@@ -142,9 +176,9 @@ export async function createResume(resume: Resume): Promise<{ success: boolean; 
   }
 
   try {
-    await docClient!.send(
+    await dbCheck.client!.send(
       new PutCommand({
-        TableName: dynamoDBConfig.tables.resumes,
+        TableName: getTables().resumes,
         Item: resume,
       })
     );
@@ -165,9 +199,9 @@ export async function getResume(id: string): Promise<{ success: boolean; data?: 
   }
 
   try {
-    const result = await docClient!.send(
+    const result = await dbCheck.client!.send(
       new GetCommand({
-        TableName: dynamoDBConfig.tables.resumes,
+        TableName: getTables().resumes,
         Key: { id },
       })
     );
@@ -188,9 +222,9 @@ export async function getResumesByUser(userId: string): Promise<{ success: boole
   }
 
   try {
-    const result = await docClient!.send(
+    const result = await dbCheck.client!.send(
       new QueryCommand({
-        TableName: dynamoDBConfig.tables.resumes,
+        TableName: getTables().resumes,
         IndexName: "userId-index",
         KeyConditionExpression: "userId = :userId",
         ExpressionAttributeValues: {
@@ -215,9 +249,9 @@ export async function deleteResume(id: string): Promise<{ success: boolean; erro
   }
 
   try {
-    await docClient!.send(
+    await dbCheck.client!.send(
       new DeleteCommand({
-        TableName: dynamoDBConfig.tables.resumes,
+        TableName: getTables().resumes,
         Key: { id },
       })
     );
@@ -242,9 +276,9 @@ export async function createApplication(application: Application): Promise<{ suc
   }
 
   try {
-    await docClient!.send(
+    await dbCheck.client!.send(
       new PutCommand({
-        TableName: dynamoDBConfig.tables.applications,
+        TableName: getTables().applications,
         Item: application,
       })
     );
@@ -265,9 +299,9 @@ export async function getApplication(id: string): Promise<{ success: boolean; da
   }
 
   try {
-    const result = await docClient!.send(
+    const result = await dbCheck.client!.send(
       new GetCommand({
-        TableName: dynamoDBConfig.tables.applications,
+        TableName: getTables().applications,
         Key: { id },
       })
     );
@@ -288,9 +322,9 @@ export async function getApplicationsByUser(userId: string): Promise<{ success: 
   }
 
   try {
-    const result = await docClient!.send(
+    const result = await dbCheck.client!.send(
       new QueryCommand({
-        TableName: dynamoDBConfig.tables.applications,
+        TableName: getTables().applications,
         IndexName: "userId-index",
         KeyConditionExpression: "userId = :userId",
         ExpressionAttributeValues: {
@@ -315,9 +349,9 @@ export async function getApplicationsByJob(jobId: string): Promise<{ success: bo
   }
 
   try {
-    const result = await docClient!.send(
+    const result = await dbCheck.client!.send(
       new QueryCommand({
-        TableName: dynamoDBConfig.tables.applications,
+        TableName: getTables().applications,
         IndexName: "jobId-index",
         KeyConditionExpression: "jobId = :jobId",
         ExpressionAttributeValues: {
@@ -343,10 +377,10 @@ export async function getAllApplications(): Promise<{ success: boolean; data?: A
   }
 
   try {
-    console.log("Fetching applications from table:", dynamoDBConfig.tables.applications);
-    const result = await docClient!.send(
+    console.log("Fetching applications from table:", getTables().applications);
+    const result = await dbCheck.client!.send(
       new ScanCommand({
-        TableName: dynamoDBConfig.tables.applications,
+        TableName: getTables().applications,
       })
     );
     console.log("Applications fetched successfully, count:", result.Items?.length || 0);
@@ -391,9 +425,9 @@ export async function updateApplicationStatus(
       expressionAttributeValues[":rating"] = rating;
     }
 
-    await docClient!.send(
+    await dbCheck.client!.send(
       new UpdateCommand({
-        TableName: dynamoDBConfig.tables.applications,
+        TableName: getTables().applications,
         Key: { id },
         UpdateExpression: `SET ${updateExpressions.join(", ")}`,
         ExpressionAttributeNames: expressionAttributeNames,
@@ -421,9 +455,9 @@ export async function createJob(job: Job): Promise<{ success: boolean; error?: s
   }
 
   try {
-    await docClient!.send(
+    await dbCheck.client!.send(
       new PutCommand({
-        TableName: dynamoDBConfig.tables.jobs,
+        TableName: getTables().jobs,
         Item: job,
       })
     );
@@ -444,9 +478,9 @@ export async function getJob(id: string): Promise<{ success: boolean; data?: Job
   }
 
   try {
-    const result = await docClient!.send(
+    const result = await dbCheck.client!.send(
       new GetCommand({
-        TableName: dynamoDBConfig.tables.jobs,
+        TableName: getTables().jobs,
         Key: { id },
       })
     );
@@ -468,13 +502,13 @@ export async function getAllJobs(status?: Job["status"]): Promise<{ success: boo
   }
 
   try {
-    console.log("Fetching jobs from table:", dynamoDBConfig.tables.jobs);
+    console.log("Fetching jobs from table:", getTables().jobs);
     let result;
 
     if (status) {
-      result = await docClient!.send(
+      result = await dbCheck.client!.send(
         new ScanCommand({
-          TableName: dynamoDBConfig.tables.jobs,
+          TableName: getTables().jobs,
           FilterExpression: "#status = :status",
           ExpressionAttributeNames: {
             "#status": "status",
@@ -485,9 +519,9 @@ export async function getAllJobs(status?: Job["status"]): Promise<{ success: boo
         })
       );
     } else {
-      result = await docClient!.send(
+      result = await dbCheck.client!.send(
         new ScanCommand({
-          TableName: dynamoDBConfig.tables.jobs,
+          TableName: getTables().jobs,
         })
       );
     }
@@ -532,9 +566,9 @@ export async function updateJob(
       }
     });
 
-    await docClient!.send(
+    await dbCheck.client!.send(
       new UpdateCommand({
-        TableName: dynamoDBConfig.tables.jobs,
+        TableName: getTables().jobs,
         Key: { id },
         UpdateExpression: `SET ${updateExpressions.join(", ")}`,
         ...(Object.keys(expressionAttributeNames).length > 0 && {
@@ -560,9 +594,9 @@ export async function deleteJob(id: string): Promise<{ success: boolean; error?:
   }
 
   try {
-    await docClient!.send(
+    await dbCheck.client!.send(
       new DeleteCommand({
-        TableName: dynamoDBConfig.tables.jobs,
+        TableName: getTables().jobs,
         Key: { id },
       })
     );
@@ -587,9 +621,9 @@ export async function createContact(contact: Contact): Promise<{ success: boolea
   }
 
   try {
-    await docClient!.send(
+    await dbCheck.client!.send(
       new PutCommand({
-        TableName: dynamoDBConfig.tables.contacts,
+        TableName: getTables().contacts,
         Item: contact,
       })
     );
@@ -610,9 +644,9 @@ export async function getContact(id: string): Promise<{ success: boolean; data?:
   }
 
   try {
-    const result = await docClient!.send(
+    const result = await dbCheck.client!.send(
       new GetCommand({
-        TableName: dynamoDBConfig.tables.contacts,
+        TableName: getTables().contacts,
         Key: { id },
       })
     );
@@ -634,13 +668,13 @@ export async function getAllContacts(status?: Contact["status"]): Promise<{ succ
   }
 
   try {
-    console.log("Fetching contacts from table:", dynamoDBConfig.tables.contacts);
+    console.log("Fetching contacts from table:", getTables().contacts);
     let result;
 
     if (status) {
-      result = await docClient!.send(
+      result = await dbCheck.client!.send(
         new ScanCommand({
-          TableName: dynamoDBConfig.tables.contacts,
+          TableName: getTables().contacts,
           FilterExpression: "#status = :status",
           ExpressionAttributeNames: {
             "#status": "status",
@@ -651,9 +685,9 @@ export async function getAllContacts(status?: Contact["status"]): Promise<{ succ
         })
       );
     } else {
-      result = await docClient!.send(
+      result = await dbCheck.client!.send(
         new ScanCommand({
-          TableName: dynamoDBConfig.tables.contacts,
+          TableName: getTables().contacts,
         })
       );
     }
@@ -693,9 +727,9 @@ export async function updateContactStatus(
       expressionAttributeValues[":notes"] = notes;
     }
 
-    await docClient!.send(
+    await dbCheck.client!.send(
       new UpdateCommand({
-        TableName: dynamoDBConfig.tables.contacts,
+        TableName: getTables().contacts,
         Key: { id },
         UpdateExpression: `SET ${updateExpressions.join(", ")}`,
         ExpressionAttributeNames: expressionAttributeNames,
@@ -719,9 +753,9 @@ export async function deleteContact(id: string): Promise<{ success: boolean; err
   }
 
   try {
-    await docClient!.send(
+    await dbCheck.client!.send(
       new DeleteCommand({
-        TableName: dynamoDBConfig.tables.contacts,
+        TableName: getTables().contacts,
         Key: { id },
       })
     );
