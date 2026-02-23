@@ -1,0 +1,31 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci
+    build:
+      commands:
+        - echo "NEXT_AWS_ACCESS_KEY_ID=$NEXT_AWS_ACCESS_KEY_ID" >> .env.production
+        - echo "NEXT_AWS_SECRET_ACCESS_KEY=$NEXT_AWS_SECRET_ACCESS_KEY" >> .env.production
+        - echo "NEXT_PUBLIC_AWS_REGION=$NEXT_PUBLIC_AWS_REGION" >> .env.production
+        - echo "NEXT_AWS_S3_BUCKET_NAME=$NEXT_AWS_S3_BUCKET_NAME" >> .env.production
+        - echo "NEXT_AWS_S3_BUCKET_REGION=$NEXT_AWS_S3_BUCKET_REGION" >> .env.production
+        - echo "NEXT_AWS_DYNAMODB_TABLE_RESUMES=$NEXT_AWS_DYNAMODB_TABLE_RESUMES" >> .env.production
+        - echo "NEXT_AWS_DYNAMODB_TABLE_APPLICATIONS=$NEXT_AWS_DYNAMODB_TABLE_APPLICATIONS" >> .env.production
+        - echo "NEXT_AWS_DYNAMODB_TABLE_JOBS=$NEXT_AWS_DYNAMODB_TABLE_JOBS" >> .env.production
+        - echo "NEXT_AWS_DYNAMODB_TABLE_CONTACTS=$NEXT_AWS_DYNAMODB_TABLE_CONTACTS" >> .env.production
+        - echo "NEXT_AWS_DYNAMODB_TABLE_CANDIDATES=$NEXT_AWS_DYNAMODB_TABLE_CANDIDATES" >> .env.production
+        - echo "NEXT_PUBLIC_COGNITO_USER_POOL_ID=$NEXT_PUBLIC_COGNITO_USER_POOL_ID" >> .env.production
+        - echo "NEXT_PUBLIC_COGNITO_CLIENT_ID=$NEXT_PUBLIC_COGNITO_CLIENT_ID" >> .env.production
+        - echo "NEXT_PUBLIC_COGNITO_DOMAIN=$NEXT_PUBLIC_COGNITO_DOMAIN" >> .env.production
+        - echo "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL" >> .env.production
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*
