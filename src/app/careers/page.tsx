@@ -21,11 +21,40 @@ import {
   Loader2,
   Sparkles,
   ArrowRight,
+  CalendarClock,
 } from "lucide-react";
 import { Job } from "@/lib/aws/dynamodb";
 
 const departments = ["All Departments", "ERP Solutions", "Cloud Services", "Data & AI", "Salesforce", "IT Staffing", "Training", "PMO"];
-const jobTypes = ["All Types", "full-time", "part-time", "contract", "remote"];
+const jobTypes = ["All Types", "full-time", "part-time", "contract", "contract-to-hire", "direct-hire", "managed-teams", "remote"];
+
+// Format job type for display
+const formatJobType = (type: string) => {
+  const typeMap: Record<string, string> = {
+    "full-time": "Full-time",
+    "part-time": "Part-time",
+    "contract": "Contract",
+    "contract-to-hire": "Contract-to-Hire",
+    "direct-hire": "Direct Hire",
+    "managed-teams": "Managed Teams",
+    "remote": "Remote",
+  };
+  return typeMap[type] || type;
+};
+
+// Format due date
+const formatDueDate = (dueDate: string | undefined): { text: string; isUrgent: boolean } | null => {
+  if (!dueDate) return null;
+  const due = new Date(dueDate);
+  const now = new Date();
+  const diffDays = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) return { text: "Closed", isUrgent: true };
+  if (diffDays === 0) return { text: "Due Today", isUrgent: true };
+  if (diffDays === 1) return { text: "Due Tomorrow", isUrgent: true };
+  if (diffDays <= 7) return { text: `${diffDays} days left`, isUrgent: true };
+  return { text: `Due ${due.toLocaleDateString()}`, isUrgent: false };
+};
 
 const ITEMS_PER_PAGE = 6;
 
@@ -375,7 +404,7 @@ export default function CareersPage() {
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     {jobTypes.map((type) => (
-                      <option key={type} value={type}>{type === "All Types" ? type : type.charAt(0).toUpperCase() + type.slice(1)}</option>
+                      <option key={type} value={type}>{type === "All Types" ? type : formatJobType(type)}</option>
                     ))}
                   </select>
                 </div>
@@ -434,9 +463,21 @@ export default function CareersPage() {
                                   Remote
                                 </span>
                               )}
-                              <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium capitalize">
-                                {job.type}
+                              <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
+                                {formatJobType(job.type)}
                               </span>
+                              {(() => {
+                                const dueInfo = formatDueDate(job.submissionDueDate);
+                                if (!dueInfo) return null;
+                                return (
+                                  <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
+                                    dueInfo.isUrgent ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-600"
+                                  }`}>
+                                    <CalendarClock className="w-3 h-3" />
+                                    {dueInfo.text}
+                                  </span>
+                                );
+                              })()}
                             </div>
                             <h3 className="text-lg font-semibold text-gray-900 mb-2">{job.title}</h3>
                             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
@@ -550,7 +591,19 @@ export default function CareersPage() {
               <div className="flex-1 overflow-y-auto p-6 md:p-8">
                 <div className="flex flex-wrap gap-2 mb-4">
                   <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-sm font-medium">{selectedJob.department}</span>
-                  <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-medium capitalize">{selectedJob.type}</span>
+                  <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-medium">{formatJobType(selectedJob.type)}</span>
+                  {(() => {
+                    const dueInfo = formatDueDate(selectedJob.submissionDueDate);
+                    if (!dueInfo) return null;
+                    return (
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1 ${
+                        dueInfo.isUrgent ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-600"
+                      }`}>
+                        <CalendarClock className="w-3.5 h-3.5" />
+                        {dueInfo.text}
+                      </span>
+                    );
+                  })()}
                 </div>
 
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">{selectedJob.title}</h2>
@@ -561,6 +614,12 @@ export default function CareersPage() {
                     <span className="flex items-center gap-2">
                       <DollarSign className="w-5 h-5" />
                       {selectedJob.salary.currency}{selectedJob.salary.min.toLocaleString()} - {selectedJob.salary.currency}{selectedJob.salary.max.toLocaleString()}
+                    </span>
+                  )}
+                  {selectedJob.submissionDueDate && (
+                    <span className="flex items-center gap-2">
+                      <CalendarClock className="w-5 h-5" />
+                      Apply by {new Date(selectedJob.submissionDueDate).toLocaleDateString()}
                     </span>
                   )}
                 </div>

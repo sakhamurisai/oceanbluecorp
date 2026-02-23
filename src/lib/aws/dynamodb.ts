@@ -133,7 +133,7 @@ export interface Job {
   title: string;
   department: string;
   location: string;
-  type: "full-time" | "part-time" | "contract" | "remote";
+  type: "full-time" | "part-time" | "contract" | "contract-to-hire" | "direct-hire" | "managed-teams" | "remote";
   description: string;
   requirements: string[];
   responsibilities: string[];
@@ -143,6 +143,7 @@ export interface Job {
     currency: string;
   };
   status: "active" | "paused" | "closed" | "draft";
+  submissionDueDate?: string; // ISO date string for application deadline
   createdAt: string;
   updatedAt?: string;
   createdBy: string;

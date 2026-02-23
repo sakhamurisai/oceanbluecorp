@@ -17,6 +17,8 @@ import {
   Loader2,
   DollarSign,
   X,
+  Download,
+  Calendar,
 } from "lucide-react";
 import { Job } from "@/lib/aws/dynamodb";
 
@@ -69,7 +71,35 @@ export default function JobsPage() {
     salaryMin: "",
     salaryMax: "",
     status: "draft" as Job["status"],
+    submissionDueDate: "",
   });
+
+  // Export jobs to Excel/CSV
+  const exportJobsToExcel = () => {
+    const headers = ["Title", "Department", "Location", "Type", "Status", "Due Date", "Applicants", "Salary Range", "Created At"];
+    const rows = filteredJobs.map(job => [
+      job.title,
+      job.department,
+      job.location,
+      job.type,
+      job.status,
+      job.submissionDueDate ? new Date(job.submissionDueDate).toLocaleDateString() : "N/A",
+      job.applicationsCount || 0,
+      job.salary ? `$${job.salary.min.toLocaleString()} - $${job.salary.max.toLocaleString()}` : "N/A",
+      new Date(job.createdAt).toLocaleDateString()
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `jobs_export_${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+  };
 
   // Fetch jobs from API
   useEffect(() => {
@@ -161,6 +191,7 @@ export default function JobsPage() {
           currency: "$",
         } : undefined,
         status: formData.status,
+        submissionDueDate: formData.submissionDueDate || undefined,
       };
 
       const url = editingJob ? `/api/jobs/${editingJob.id}` : "/api/jobs";
@@ -198,6 +229,7 @@ export default function JobsPage() {
       salaryMin: "",
       salaryMax: "",
       status: "draft",
+      submissionDueDate: "",
     });
     setShowCreateModal(false);
     setEditingJob(null);
@@ -216,6 +248,7 @@ export default function JobsPage() {
       salaryMin: job.salary?.min?.toString() || "",
       salaryMax: job.salary?.max?.toString() || "",
       status: job.status,
+      submissionDueDate: job.submissionDueDate?.split("T")[0] || "",
     });
     setShowCreateModal(true);
   };
@@ -233,6 +266,7 @@ export default function JobsPage() {
       salaryMin: job.salary?.min?.toString() || "",
       salaryMax: job.salary?.max?.toString() || "",
       status: "draft",
+      submissionDueDate: "",
     });
     setShowCreateModal(true);
   };
@@ -280,16 +314,25 @@ export default function JobsPage() {
             Manage job listings and track applications
           </p>
         </div>
-        <button
-          onClick={() => {
-            resetForm();
-            setShowCreateModal(true);
-          }}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Add New Job
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={exportJobsToExcel}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Export Excel
+          </button>
+          <button
+            onClick={() => {
+              resetForm();
+              setShowCreateModal(true);
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add New Job
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -528,6 +571,9 @@ export default function JobsPage() {
                     <option value="full-time">Full-time</option>
                     <option value="part-time">Part-time</option>
                     <option value="contract">Contract</option>
+                    <option value="contract-to-hire">Contract-to-Hire</option>
+                    <option value="direct-hire">Direct Hire</option>
+                    <option value="managed-teams">Managed Teams</option>
                     <option value="remote">Remote</option>
                   </select>
                 </div>
@@ -560,6 +606,21 @@ export default function JobsPage() {
                     <option value="paused">Paused</option>
                   </select>
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Submission Due Date
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="date"
+                    value={formData.submissionDueDate}
+                    onChange={(e) => setFormData({ ...formData, submissionDueDate: e.target.value })}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Leave empty for no deadline</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

@@ -168,23 +168,27 @@ export default function ApplicationsPage() {
   };
 
   const handleExportCSV = () => {
-    const headers = ["Name", "Email", "Phone", "Position", "Status", "Applied Date", "Rating"];
+    const headers = ["Name", "Email", "Phone", "Position", "Department", "Status", "Applied Date", "Rating", "Experience", "Skills", "Cover Letter"];
     const rows = filteredApplications.map((app) => [
-      app.name,
-      app.email,
-      app.phone || "",
-      app.jobTitle || "",
-      app.status,
-      new Date(app.appliedAt).toLocaleDateString(),
-      app.rating?.toString() || "",
+      `"${app.name}"`,
+      `"${app.email}"`,
+      `"${app.phone || ""}"`,
+      `"${app.jobTitle || ""}"`,
+      `"${app.jobDepartment || ""}"`,
+      `"${app.status}"`,
+      `"${new Date(app.appliedAt).toLocaleDateString()}"`,
+      `"${app.rating?.toString() || ""}"`,
+      `"${app.experience || ""}"`,
+      `"${app.skills?.join(", ") || ""}"`,
+      `"${(app.coverLetter || "").replace(/"/g, '""')}"`,
     ]);
 
-    const csvContent = [headers, ...rows].map((row) => row.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
+    const csvContent = [headers.join(","), ...rows.map(row => row.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `applications-${new Date().toISOString().split("T")[0]}.csv`;
+    a.download = `applications_export_${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -257,7 +261,7 @@ export default function ApplicationsPage() {
           className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
         >
           <Download className="w-4 h-4" />
-          Export CSV
+          Export Excel
         </button>
       </div>
 
