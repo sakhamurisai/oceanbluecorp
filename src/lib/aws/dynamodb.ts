@@ -25,6 +25,7 @@ let dynamoClient: DynamoDBClient | null = null;
 let docClient: DynamoDBDocumentClient | null = null;
 
 if (isAwsConfigured()) {
+  console.log("Initializing DynamoDB client with region:", awsConfig.region);
   dynamoClient = new DynamoDBClient({
     region: awsConfig.region,
     credentials: awsConfig.credentials,
@@ -32,11 +33,14 @@ if (isAwsConfigured()) {
   });
 
   // Document client for easier operations
-  docClient! = DynamoDBDocumentClient.from(dynamoClient, {
+  docClient = DynamoDBDocumentClient.from(dynamoClient, {
     marshallOptions: {
       removeUndefinedValues: true,
     },
   });
+  console.log("DynamoDB client initialized successfully");
+} else {
+  console.warn("AWS credentials not configured - DynamoDB operations will return empty results");
 }
 
 // Helper to check if DB is available
@@ -47,7 +51,7 @@ const checkDbAvailable = (): { available: boolean; error?: string } => {
       error: "AWS credentials not configured. Please set NEXT_AWS_ACCESS_KEY_ID and NEXT_AWS_SECRET_ACCESS_KEY environment variables.",
     };
   }
-  if (!docClient!) {
+  if (!docClient) {
     return {
       available: false,
       error: "DynamoDB client not initialized",
@@ -138,7 +142,7 @@ export async function createResume(resume: Resume): Promise<{ success: boolean; 
   }
 
   try {
-    await docClient!!.send(
+    await docClient!.send(
       new PutCommand({
         TableName: dynamoDBConfig.tables.resumes,
         Item: resume,
@@ -155,6 +159,11 @@ export async function createResume(resume: Resume): Promise<{ success: boolean; 
 }
 
 export async function getResume(id: string): Promise<{ success: boolean; data?: Resume; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
   try {
     const result = await docClient!.send(
       new GetCommand({
@@ -173,6 +182,11 @@ export async function getResume(id: string): Promise<{ success: boolean; data?: 
 }
 
 export async function getResumesByUser(userId: string): Promise<{ success: boolean; data?: Resume[]; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
   try {
     const result = await docClient!.send(
       new QueryCommand({
@@ -195,6 +209,11 @@ export async function getResumesByUser(userId: string): Promise<{ success: boole
 }
 
 export async function deleteResume(id: string): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
   try {
     await docClient!.send(
       new DeleteCommand({
@@ -217,6 +236,11 @@ export async function deleteResume(id: string): Promise<{ success: boolean; erro
 // ===========================================
 
 export async function createApplication(application: Application): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
   try {
     await docClient!.send(
       new PutCommand({
@@ -235,6 +259,11 @@ export async function createApplication(application: Application): Promise<{ suc
 }
 
 export async function getApplication(id: string): Promise<{ success: boolean; data?: Application; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
   try {
     const result = await docClient!.send(
       new GetCommand({
@@ -253,6 +282,11 @@ export async function getApplication(id: string): Promise<{ success: boolean; da
 }
 
 export async function getApplicationsByUser(userId: string): Promise<{ success: boolean; data?: Application[]; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
   try {
     const result = await docClient!.send(
       new QueryCommand({
@@ -275,6 +309,11 @@ export async function getApplicationsByUser(userId: string): Promise<{ success: 
 }
 
 export async function getApplicationsByJob(jobId: string): Promise<{ success: boolean; data?: Application[]; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
   try {
     const result = await docClient!.send(
       new QueryCommand({
@@ -304,14 +343,18 @@ export async function getAllApplications(): Promise<{ success: boolean; data?: A
   }
 
   try {
-    const result = await docClient!!.send(
+    console.log("Fetching applications from table:", dynamoDBConfig.tables.applications);
+    const result = await docClient!.send(
       new ScanCommand({
         TableName: dynamoDBConfig.tables.applications,
       })
     );
+    console.log("Applications fetched successfully, count:", result.Items?.length || 0);
     return { success: true, data: result.Items as Application[] };
-  } catch (error) {
-    console.error("Error getting all applications:", error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorName = error instanceof Error ? error.name : "UnknownError";
+    console.error("Error getting all applications:", errorName, errorMessage, error);
     // Return empty array for read operations to allow the app to function
     return { success: true, data: [] };
   }
@@ -323,6 +366,11 @@ export async function updateApplicationStatus(
   notes?: string,
   rating?: number
 ): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
   try {
     const updateExpressions: string[] = ["#status = :status", "updatedAt = :updatedAt"];
     const expressionAttributeValues: Record<string, unknown> = {
@@ -367,6 +415,11 @@ export async function updateApplicationStatus(
 // ===========================================
 
 export async function createJob(job: Job): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
   try {
     await docClient!.send(
       new PutCommand({
@@ -385,8 +438,13 @@ export async function createJob(job: Job): Promise<{ success: boolean; error?: s
 }
 
 export async function getJob(id: string): Promise<{ success: boolean; data?: Job; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
   try {
-    const result = await docClient!!.send(
+    const result = await docClient!.send(
       new GetCommand({
         TableName: dynamoDBConfig.tables.jobs,
         Key: { id },
@@ -410,6 +468,7 @@ export async function getAllJobs(status?: Job["status"]): Promise<{ success: boo
   }
 
   try {
+    console.log("Fetching jobs from table:", dynamoDBConfig.tables.jobs);
     let result;
 
     if (status) {
@@ -426,16 +485,19 @@ export async function getAllJobs(status?: Job["status"]): Promise<{ success: boo
         })
       );
     } else {
-      result = await docClient!!.send(
+      result = await docClient!.send(
         new ScanCommand({
           TableName: dynamoDBConfig.tables.jobs,
         })
       );
     }
 
+    console.log("Jobs fetched successfully, count:", result.Items?.length || 0);
     return { success: true, data: result.Items as Job[] };
-  } catch (error) {
-    console.error("Error getting jobs:", error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorName = error instanceof Error ? error.name : "UnknownError";
+    console.error("Error getting jobs:", errorName, errorMessage, error);
     // Return empty array for read operations to allow the app to function
     return { success: true, data: [] };
   }
@@ -445,6 +507,11 @@ export async function updateJob(
   id: string,
   updates: Partial<Omit<Job, "id" | "createdAt" | "createdBy">>
 ): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
   try {
     const updateExpressions: string[] = ["updatedAt = :updatedAt"];
     const expressionAttributeValues: Record<string, unknown> = {
@@ -487,6 +554,11 @@ export async function updateJob(
 }
 
 export async function deleteJob(id: string): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
   try {
     await docClient!.send(
       new DeleteCommand({
@@ -509,6 +581,11 @@ export async function deleteJob(id: string): Promise<{ success: boolean; error?:
 // ===========================================
 
 export async function createContact(contact: Contact): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
   try {
     await docClient!.send(
       new PutCommand({
@@ -527,6 +604,11 @@ export async function createContact(contact: Contact): Promise<{ success: boolea
 }
 
 export async function getContact(id: string): Promise<{ success: boolean; data?: Contact; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
   try {
     const result = await docClient!.send(
       new GetCommand({
@@ -552,10 +634,11 @@ export async function getAllContacts(status?: Contact["status"]): Promise<{ succ
   }
 
   try {
+    console.log("Fetching contacts from table:", dynamoDBConfig.tables.contacts);
     let result;
 
     if (status) {
-      result = await docClient!!.send(
+      result = await docClient!.send(
         new ScanCommand({
           TableName: dynamoDBConfig.tables.contacts,
           FilterExpression: "#status = :status",
@@ -568,16 +651,19 @@ export async function getAllContacts(status?: Contact["status"]): Promise<{ succ
         })
       );
     } else {
-      result = await docClient!!.send(
+      result = await docClient!.send(
         new ScanCommand({
           TableName: dynamoDBConfig.tables.contacts,
         })
       );
     }
 
+    console.log("Contacts fetched successfully, count:", result.Items?.length || 0);
     return { success: true, data: result.Items as Contact[] };
-  } catch (error) {
-    console.error("Error getting contacts:", error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorName = error instanceof Error ? error.name : "UnknownError";
+    console.error("Error getting contacts:", errorName, errorMessage, error);
     return { success: true, data: [] };
   }
 }
@@ -587,6 +673,11 @@ export async function updateContactStatus(
   status: Contact["status"],
   notes?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
   try {
     const updateExpressions: string[] = ["#status = :status", "updatedAt = :updatedAt"];
     const expressionAttributeValues: Record<string, unknown> = {
@@ -622,6 +713,11 @@ export async function updateContactStatus(
 }
 
 export async function deleteContact(id: string): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
   try {
     await docClient!.send(
       new DeleteCommand({

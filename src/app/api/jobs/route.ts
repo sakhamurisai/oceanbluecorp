@@ -8,9 +8,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") as Job["status"] | null;
 
+    console.log("API /api/jobs GET - fetching jobs with status:", status || "all");
     const result = await getAllJobs(status || undefined);
 
     if (!result.success) {
+      console.error("API /api/jobs GET - failed:", result.error);
       return NextResponse.json(
         { error: result.error || "Failed to fetch jobs" },
         { status: 500 }
@@ -22,11 +24,13 @@ export async function GET(request: NextRequest) {
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
 
+    console.log("API /api/jobs GET - success, count:", jobs.length);
     return NextResponse.json({ jobs });
   } catch (error) {
-    console.error("Error fetching jobs:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("API /api/jobs GET - exception:", errorMessage, error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: `Internal server error: ${errorMessage}` },
       { status: 500 }
     );
   }
