@@ -1,42 +1,77 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Search,
-  Filter,
   Edit3,
   Trash2,
   Users,
   MapPin,
   Briefcase,
   CheckCircle2,
-  PauseCircle,
-  XCircle,
   Copy,
   Loader2,
   DollarSign,
   X,
   Download,
   Calendar,
-  User,
+  Eye,
+  MoreHorizontal,
 } from "lucide-react";
 import { Job } from "@/lib/aws/dynamodb";
 import { useAuth } from "@/lib/auth/AuthContext";
 
+// shadcn/ui components
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+
 const statusConfig = {
   active: {
     label: "Active",
-    color: "bg-green-100 text-green-700",
-    icon: CheckCircle2,
+    className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/10",
   },
   paused: {
     label: "Paused",
-    color: "bg-yellow-100 text-yellow-700",
-    icon: PauseCircle,
+    className: "bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/10",
   },
-  draft: { label: "Draft", color: "bg-gray-100 text-gray-700", icon: Edit3 },
-  closed: { label: "Closed", color: "bg-red-100 text-red-700", icon: XCircle },
+  draft: {
+    label: "Draft",
+    className: "bg-muted text-muted-foreground",
+  },
+  closed: {
+    label: "Closed",
+    className: "bg-rose-500/10 text-rose-600 border-rose-500/20 hover:bg-rose-500/10",
+  },
 };
 
 const departments = [
@@ -52,6 +87,7 @@ const departments = [
 
 export default function JobsPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +98,6 @@ export default function JobsPage() {
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form state
   const [formData, setFormData] = useState({
     title: "",
     department: "ERP Solutions",
@@ -79,7 +114,6 @@ export default function JobsPage() {
     notifyAdminOnApplication: false,
   });
 
-  // Export jobs to Excel/CSV
   const exportJobsToExcel = () => {
     const headers = ["Title", "Department", "Location", "Type", "Status", "Due Date", "Applicants", "Salary Range", "Created At"];
     const rows = filteredJobs.map(job => [
@@ -106,7 +140,6 @@ export default function JobsPage() {
     link.click();
   };
 
-  // Fetch jobs from API
   useEffect(() => {
     fetchJobs();
   }, []);
@@ -116,11 +149,7 @@ export default function JobsPage() {
       setLoading(true);
       const response = await fetch("/api/jobs");
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch jobs");
-      }
-
+      if (!response.ok) throw new Error(data.error || "Failed to fetch jobs");
       setJobs(data.jobs || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch jobs");
@@ -145,16 +174,8 @@ export default function JobsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to update status");
-      }
-
-      setJobs((prev) =>
-        prev.map((job) =>
-          job.id === jobId ? { ...job, status: newStatus } : job
-        )
-      );
+      if (!response.ok) throw new Error("Failed to update status");
+      setJobs((prev) => prev.map((job) => (job.id === jobId ? { ...job, status: newStatus } : job)));
     } catch (err) {
       alert("Failed to update job status");
     }
@@ -162,14 +183,8 @@ export default function JobsPage() {
 
   const handleDelete = async (jobId: string) => {
     try {
-      const response = await fetch(`/api/jobs/${jobId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete job");
-      }
-
+      const response = await fetch(`/api/jobs/${jobId}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete job");
       setJobs((prev) => prev.filter((job) => job.id !== jobId));
       setShowDeleteConfirm(null);
     } catch (err) {
@@ -199,7 +214,6 @@ export default function JobsPage() {
         submissionDueDate: formData.submissionDueDate || undefined,
         notifyHROnApplication: formData.notifyHROnApplication,
         notifyAdminOnApplication: formData.notifyAdminOnApplication,
-        // Add posted by info for new jobs
         ...(!editingJob && {
           postedByName: user?.name || user?.email?.split("@")[0] || "Admin",
           postedByEmail: user?.email || "",
@@ -299,9 +313,9 @@ export default function JobsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <Loader2 className="w-10 h-10 text-blue-600 mx-auto mb-4 animate-spin" />
-          <p className="text-gray-500">Loading jobs...</p>
+        <div className="text-center space-y-3">
+          <Loader2 className="w-8 h-8 text-primary mx-auto animate-spin" />
+          <p className="text-muted-foreground text-sm">Loading jobs...</p>
         </div>
       </div>
     );
@@ -310,14 +324,9 @@ export default function JobsPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Retry
-          </button>
+        <div className="text-center space-y-3">
+          <p className="text-destructive text-sm">{error}</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
         </div>
       </div>
     );
@@ -326,492 +335,505 @@ export default function JobsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Job Postings</h1>
-          <p className="text-gray-600 mt-1">
-            Manage job listings and track applications
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">Job Postings</h1>
+          <p className="text-muted-foreground text-sm">Manage job listings and track applications</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={exportJobsToExcel}
-            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            Export Excel
-          </button>
-          <button
-            onClick={() => {
-              resetForm();
-              setShowCreateModal(true);
-            }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add New Job
-          </button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportJobsToExcel}>
+            <Download className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Export</span>
+          </Button>
+          <Button size="sm" onClick={() => { resetForm(); setShowCreateModal(true); }}>
+            <Plus className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Add Job</span>
+          </Button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-              <Briefcase className="w-5 h-5 text-blue-600" />
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Card className="py-4">
+          <CardContent className="px-4 py-0">
+            <div className="flex items-center gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <Briefcase className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.total}</p>
+                <p className="text-xs text-muted-foreground">Total Jobs</p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-              <p className="text-sm text-gray-600">Total Jobs</p>
+          </CardContent>
+        </Card>
+        <Card className="py-4">
+          <CardContent className="px-4 py-0">
+            <div className="flex items-center gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.active}</p>
+                <p className="text-xs text-muted-foreground">Active</p>
+              </div>
             </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
+          </CardContent>
+        </Card>
+        <Card className="py-4">
+          <CardContent className="px-4 py-0">
+            <div className="flex items-center gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/10">
+                <Users className="h-5 w-5 text-violet-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.totalApplicants}</p>
+                <p className="text-xs text-muted-foreground">Applicants</p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
-              <p className="text-sm text-gray-600">Active Listings</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-              <Users className="w-5 h-5 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.totalApplicants}
-              </p>
-              <p className="text-sm text-gray-600">Total Applicants</p>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search jobs..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            />
+      <Card className="py-4">
+        <CardContent className="px-4 py-0">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search jobs..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[150px]">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="paused">Paused</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-400" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="paused">Paused</option>
-              <option value="draft">Draft</option>
-              <option value="closed">Closed</option>
-            </select>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Jobs list */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-900">
-                  Job Title
-                </th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-900">
-                  Department
-                </th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-900">
-                  Location
-                </th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-900">
-                  Applicants
-                </th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-900">
-                  Posted By
-                </th>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-900">
-                  Status
-                </th>
-                <th className="text-right px-6 py-4 text-sm font-semibold text-gray-900">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredJobs.map((job) => {
-                const status = statusConfig[job.status as keyof typeof statusConfig];
-                return (
-                  <tr key={job.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="font-medium text-gray-900">{job.title}</p>
-                        <p className="text-sm text-gray-500 capitalize">{job.type}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">{job.department}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1.5 text-gray-600">
-                        <MapPin className="w-4 h-4" />
-                        {job.location}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1.5 text-gray-600">
-                        <Users className="w-4 h-4" />
-                        {job.applicationsCount || 0}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {job.postedByName ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-                            <User className="w-3.5 h-3.5 text-white" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-700">{job.postedByName}</p>
-                            <p className="text-xs text-gray-500 capitalize">{job.postedByRole || "HR"}</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-400">-</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <select
-                        value={job.status}
-                        onChange={(e) => handleStatusChange(job.id, e.target.value as Job["status"])}
-                        className={`px-2.5 py-1 rounded-full text-xs font-medium border-0 ${status.color} cursor-pointer`}
+      {/* Mobile Cards */}
+      <div className="grid gap-3 lg:hidden">
+        {filteredJobs.length > 0 ? (
+          filteredJobs.map((job) => {
+            const status = statusConfig[job.status as keyof typeof statusConfig];
+            return (
+              <Card key={job.id} className="py-4">
+                <CardContent className="px-4 py-0">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="min-w-0 flex-1">
+                      <button
+                        onClick={() => router.push(`/admin/jobs/${job.id}`)}
+                        className="font-medium text-foreground hover:text-primary transition-colors text-left truncate block"
                       >
-                        <option value="active">Active</option>
-                        <option value="paused">Paused</option>
-                        <option value="draft">Draft</option>
-                        <option value="closed">Closed</option>
-                      </select>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleEdit(job)}
-                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                          title="Edit"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDuplicate(job)}
-                          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
-                          title="Duplicate"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setShowDeleteConfirm(job.id)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                        {job.title}
+                      </button>
+                      <p className="text-xs text-muted-foreground capitalize">{job.type}</p>
+                    </div>
+                    <Badge variant="outline" className={status.className}>{status.label}</Badge>
+                  </div>
 
-        {filteredJobs.length === 0 && (
-          <div className="text-center py-12">
-            <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">No jobs found</p>
-            <button
-              onClick={() => {
-                resetForm();
-                setShowCreateModal(true);
-              }}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Create your first job
-            </button>
-          </div>
+                  <div className="space-y-1.5 text-sm text-muted-foreground mb-4">
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="h-3.5 w-3.5" />
+                      <span>{job.department}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-3.5 w-3.5" />
+                      <span>{job.location}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Users className="h-3.5 w-3.5" />
+                      <span>{job.applicationsCount || 0} applicants</span>
+                    </div>
+                  </div>
+
+                  <Separator className="mb-3" />
+
+                  <div className="flex items-center justify-between">
+                    {job.postedByName ? (
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                            {job.postedByName.split(" ").map(n => n[0]).join("").slice(0, 2)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs text-muted-foreground">{job.postedByName}</span>
+                      </div>
+                    ) : <div />}
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon-sm" onClick={() => router.push(`/admin/jobs/${job.id}`)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" onClick={() => handleEdit(job)}>
+                        <Edit3 className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" onClick={() => setShowDeleteConfirm(job.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
+        ) : (
+          <Card className="py-8">
+            <CardContent className="text-center">
+              <Briefcase className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+              <p className="text-muted-foreground text-sm">No jobs found</p>
+            </CardContent>
+          </Card>
         )}
       </div>
 
+      {/* Desktop Table */}
+      <Card className="hidden lg:block py-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Job</TableHead>
+              <TableHead>Department</TableHead>
+              <TableHead>Location</TableHead>
+              <TableHead>Applicants</TableHead>
+              <TableHead>Posted By</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredJobs.map((job) => {
+              const status = statusConfig[job.status as keyof typeof statusConfig];
+              return (
+                <TableRow key={job.id}>
+                  <TableCell>
+                    <div>
+                      <button
+                        onClick={() => router.push(`/admin/jobs/${job.id}`)}
+                        className="font-medium text-foreground hover:text-primary transition-colors text-left"
+                      >
+                        {job.title}
+                      </button>
+                      <p className="text-xs text-muted-foreground capitalize">{job.type}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{job.department}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {job.location}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <button
+                      onClick={() => router.push(`/admin/jobs/${job.id}`)}
+                      className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <Users className="h-3.5 w-3.5" />
+                      {job.applicationsCount || 0}
+                    </button>
+                  </TableCell>
+                  <TableCell>
+                    {job.postedByName ? (
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                            {job.postedByName.split(" ").map(n => n[0]).join("").slice(0, 2)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="text-xs font-medium">{job.postedByName}</p>
+                          <p className="text-[10px] text-muted-foreground capitalize">{job.postedByRole || "HR"}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Select value={job.status} onValueChange={(value) => handleStatusChange(job.id, value as Job["status"])}>
+                      <SelectTrigger className="h-7 w-[100px] text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="paused">Paused</SelectItem>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="closed">Closed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon-sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => router.push(`/admin/jobs/${job.id}`)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(job)}>
+                          <Edit3 className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDuplicate(job)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Duplicate
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setShowDeleteConfirm(job.id)} variant="destructive">
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+
+        {filteredJobs.length === 0 && (
+          <div className="text-center py-12">
+            <Briefcase className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+            <p className="text-muted-foreground text-sm mb-4">No jobs found</p>
+            <Button onClick={() => { resetForm(); setShowCreateModal(true); }}>
+              Create your first job
+            </Button>
+          </div>
+        )}
+      </Card>
+
       {/* Create/Edit Job Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {editingJob ? "Edit Job Posting" : "Create New Job Posting"}
-              </h2>
-              <button
-                onClick={resetForm}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto py-0">
+            <div className="sticky top-0 bg-card z-10 px-6 py-4 border-b flex items-center justify-between">
+              <h2 className="text-lg font-semibold">{editingJob ? "Edit Job" : "New Job Posting"}</h2>
+              <Button variant="ghost" size="icon-sm" onClick={resetForm}>
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Job Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  placeholder="e.g. Senior Software Engineer"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Department *
-                  </label>
-                  <select
-                    value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
-                  >
-                    {departments.map((dept) => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Job Type *
-                  </label>
-                  <select
-                    value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value as Job["type"] })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
-                  >
-                    <option value="full-time">Full-time</option>
-                    <option value="part-time">Part-time</option>
-                    <option value="contract">Contract</option>
-                    <option value="contract-to-hire">Contract-to-Hire</option>
-                    <option value="direct-hire">Direct Hire</option>
-                    <option value="managed-teams">Managed Teams</option>
-                    <option value="remote">Remote</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Location *
-                  </label>
-                  <input
-                    type="text"
+            <CardContent className="p-6">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Job Title *</Label>
+                  <Input
+                    id="title"
                     required
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    placeholder="e.g. Remote, New York, NY"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="e.g. Senior Software Engineer"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Status
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as Job["status"] })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="active">Active (Publish immediately)</option>
-                    <option value="paused">Paused</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Submission Due Date
-                </label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="date"
-                    value={formData.submissionDueDate}
-                    onChange={(e) => setFormData({ ...formData, submissionDueDate: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Leave empty for no deadline</p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Min Salary
-                  </label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="number"
-                      value={formData.salaryMin}
-                      onChange={(e) => setFormData({ ...formData, salaryMin: e.target.value })}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                      placeholder="80000"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Max Salary
-                  </label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="number"
-                      value={formData.salaryMax}
-                      onChange={(e) => setFormData({ ...formData, salaryMax: e.target.value })}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                      placeholder="120000"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Job Description *
-                </label>
-                <textarea
-                  required
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
-                  rows={4}
-                  placeholder="Describe the role, responsibilities, and what makes it exciting..."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Requirements (one per line)
-                </label>
-                <textarea
-                  value={formData.requirements}
-                  onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
-                  rows={3}
-                  placeholder="5+ years of experience&#10;Bachelor's degree in Computer Science&#10;Strong communication skills"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Responsibilities (one per line)
-                </label>
-                <textarea
-                  value={formData.responsibilities}
-                  onChange={(e) => setFormData({ ...formData, responsibilities: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
-                  rows={3}
-                  placeholder="Lead technical projects&#10;Mentor junior developers&#10;Collaborate with product team"
-                />
-              </div>
 
-              {/* Email Notification Settings */}
-              <div className="pt-4 border-t border-gray-200">
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Email Notifications
-                </label>
-                <p className="text-xs text-gray-500 mb-3">
-                  Send email notifications when someone applies for this job
-                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Department *</Label>
+                    <Select value={formData.department} onValueChange={(v) => setFormData({ ...formData, department: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {departments.map((dept) => (
+                          <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Job Type *</Label>
+                    <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v as Job["type"] })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="full-time">Full-time</SelectItem>
+                        <SelectItem value="part-time">Part-time</SelectItem>
+                        <SelectItem value="contract">Contract</SelectItem>
+                        <SelectItem value="contract-to-hire">Contract-to-Hire</SelectItem>
+                        <SelectItem value="direct-hire">Direct Hire</SelectItem>
+                        <SelectItem value="managed-teams">Managed Teams</SelectItem>
+                        <SelectItem value="remote">Remote</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location *</Label>
+                    <Input
+                      id="location"
+                      required
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      placeholder="e.g. Remote, New York, NY"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v as Job["status"] })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="paused">Paused</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="deadline">Application Deadline</Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="deadline"
+                      type="date"
+                      value={formData.submissionDueDate}
+                      onChange={(e) => setFormData({ ...formData, submissionDueDate: e.target.value })}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="salaryMin">Min Salary</Label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="salaryMin"
+                        type="number"
+                        value={formData.salaryMin}
+                        onChange={(e) => setFormData({ ...formData, salaryMin: e.target.value })}
+                        placeholder="80000"
+                        className="pl-9"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="salaryMax">Max Salary</Label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="salaryMax"
+                        type="number"
+                        value={formData.salaryMax}
+                        onChange={(e) => setFormData({ ...formData, salaryMax: e.target.value })}
+                        placeholder="120000"
+                        className="pl-9"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description *</Label>
+                  <textarea
+                    id="description"
+                    required
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring resize-none"
+                    placeholder="Describe the role..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="requirements">Requirements (one per line)</Label>
+                  <textarea
+                    id="requirements"
+                    value={formData.requirements}
+                    onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring resize-none"
+                    placeholder="5+ years experience&#10;Bachelor's degree..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="responsibilities">Responsibilities (one per line)</Label>
+                  <textarea
+                    id="responsibilities"
+                    value={formData.responsibilities}
+                    onChange={(e) => setFormData({ ...formData, responsibilities: e.target.value })}
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring resize-none"
+                    placeholder="Lead technical projects&#10;Mentor junior developers..."
+                  />
+                </div>
+
+                <Separator />
+
                 <div className="space-y-3">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.notifyHROnApplication}
-                      onChange={(e) => setFormData({ ...formData, notifyHROnApplication: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">Notify HR team</span>
-                    <span className="text-xs text-gray-400">(All users with HR role)</span>
-                  </label>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.notifyAdminOnApplication}
-                      onChange={(e) => setFormData({ ...formData, notifyAdminOnApplication: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">Notify Administrators</span>
-                    <span className="text-xs text-gray-400">(All users with Admin role)</span>
-                  </label>
+                  <Label>Email Notifications</Label>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="notifyHR"
+                        checked={formData.notifyHROnApplication}
+                        onCheckedChange={(checked) => setFormData({ ...formData, notifyHROnApplication: checked as boolean })}
+                      />
+                      <Label htmlFor="notifyHR" className="text-sm font-normal cursor-pointer">
+                        Notify HR team on new applications
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="notifyAdmin"
+                        checked={formData.notifyAdminOnApplication}
+                        onCheckedChange={(checked) => setFormData({ ...formData, notifyAdminOnApplication: checked as boolean })}
+                      />
+                      <Label htmlFor="notifyAdmin" className="text-sm font-normal cursor-pointer">
+                        Notify Administrators on new applications
+                      </Label>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-                >
-                  {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {editingJob ? "Save Changes" : "Create Job"}
-                </button>
-              </div>
-            </form>
-          </div>
+                <Separator />
+
+                <div className="flex items-center justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={resetForm}>Cancel</Button>
+                  <Button type="submit" disabled={submitting}>
+                    {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    {editingJob ? "Save Changes" : "Create Job"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       )}
 
-      {/* Delete confirmation modal */}
+      {/* Delete Confirmation */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-              <Trash2 className="w-6 h-6 text-red-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
-              Delete Job Posting?
-            </h3>
-            <p className="text-gray-600 text-center mb-6">
-              This action cannot be undone. All applications for this position
-              will also be affected.
-            </p>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(null)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(showDeleteConfirm)}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-sm py-6">
+            <CardContent className="text-center px-6 py-0">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 mx-auto mb-4">
+                <Trash2 className="h-6 w-6 text-destructive" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Delete Job?</h3>
+              <p className="text-sm text-muted-foreground mb-6">This action cannot be undone.</p>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setShowDeleteConfirm(null)}>Cancel</Button>
+                <Button variant="destructive" className="flex-1" onClick={() => handleDelete(showDeleteConfirm)}>Delete</Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

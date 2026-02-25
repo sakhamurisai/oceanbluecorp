@@ -27,6 +27,7 @@ const getEnvConfig = () => {
       jobs: process.env.NEXT_AWS_DYNAMODB_TABLE_JOBS || "oceanblue-jobs",
       candidates: process.env.NEXT_AWS_DYNAMODB_TABLE_CANDIDATES || "oceanblue-candidates",
       contacts: process.env.NEXT_AWS_DYNAMODB_TABLE_CONTACTS || "oceanblue-contacts",
+      notifications: process.env.NEXT_AWS_DYNAMODB_TABLE_NOTIFICATIONS || "oceanblue-notifications",
     },
   };
 };
@@ -170,6 +171,20 @@ export interface Contact {
   createdAt: string;
   updatedAt?: string;
   notes?: string;
+}
+
+export interface Notification {
+  id: string; // PK
+  type: "job_posted" | "application_received" | "contact_received";
+  title: string;
+  message: string;
+  link?: string; // URL to navigate to when clicked
+  relatedId?: string; // ID of related entity (jobId, applicationId, contactId)
+  isRead: boolean;
+  createdAt: string;
+  // TTL field - DynamoDB will auto-delete items when this timestamp passes
+  // Set to 7 days from creation
+  ttl?: number; // Unix timestamp in seconds
 }
 
 // ===========================================
@@ -772,6 +787,175 @@ export async function deleteContact(id: string): Promise<{ success: boolean; err
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to delete contact",
+    };
+  }
+}
+
+// ===========================================
+// Notification Operations
+// ===========================================
+
+export async function createNotification(notification: Omit<Notification, 'ttl'>): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
+  try {
+    // Calculate TTL: 7 days from now in Unix timestamp (seconds)
+    const SEVEN_DAYS_IN_SECONDS = 7 * 24 * 60 * 60;
+    const ttl = Math.floor(Date.now() / 1000) + SEVEN_DAYS_IN_SECONDS;
+
+    await dbCheck.client!.send(
+      new PutCommand({
+        TableName: getTables().notifications,
+        Item: {
+          ...notification,
+          ttl, // DynamoDB will auto-delete after 7 days
+        },
+      })
+    );
+    return { success: true };
+  } catch (error) {
+    console.error("Error creating notification:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to create notification",
+    };
+  }
+}
+
+export async function getAllNotifications(limit?: number): Promise<{ success: boolean; data?: Notification[]; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    console.warn("DynamoDB not available:", dbCheck.error);
+    return { success: true, data: [] };
+  }
+
+  try {
+    const result = await dbCheck.client!.send(
+      new ScanCommand({
+        TableName: getTables().notifications,
+        ...(limit && { Limit: limit }),
+      })
+    );
+
+    // Sort by createdAt descending
+    const notifications = (result.Items as Notification[]) || [];
+    notifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return { success: true, data: notifications };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error getting notifications:", errorMessage, error);
+    return { success: true, data: [] };
+  }
+}
+
+export async function getUnreadNotifications(): Promise<{ success: boolean; data?: Notification[]; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    console.warn("DynamoDB not available:", dbCheck.error);
+    return { success: true, data: [] };
+  }
+
+  try {
+    const result = await dbCheck.client!.send(
+      new ScanCommand({
+        TableName: getTables().notifications,
+        FilterExpression: "isRead = :isRead",
+        ExpressionAttributeValues: {
+          ":isRead": false,
+        },
+      })
+    );
+
+    // Sort by createdAt descending
+    const notifications = (result.Items as Notification[]) || [];
+    notifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return { success: true, data: notifications };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error getting unread notifications:", errorMessage, error);
+    return { success: true, data: [] };
+  }
+}
+
+export async function markNotificationAsRead(id: string): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
+  try {
+    await dbCheck.client!.send(
+      new UpdateCommand({
+        TableName: getTables().notifications,
+        Key: { id },
+        UpdateExpression: "SET isRead = :isRead",
+        ExpressionAttributeValues: {
+          ":isRead": true,
+        },
+      })
+    );
+    return { success: true };
+  } catch (error) {
+    console.error("Error marking notification as read:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update notification",
+    };
+  }
+}
+
+export async function markAllNotificationsAsRead(): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
+  try {
+    // First get all unread notifications
+    const unreadResult = await getUnreadNotifications();
+    if (!unreadResult.success || !unreadResult.data) {
+      return { success: false, error: "Failed to get unread notifications" };
+    }
+
+    // Mark each as read
+    for (const notification of unreadResult.data) {
+      await markNotificationAsRead(notification.id);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error marking all notifications as read:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update notifications",
+    };
+  }
+}
+
+export async function deleteNotification(id: string): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
+  try {
+    await dbCheck.client!.send(
+      new DeleteCommand({
+        TableName: getTables().notifications,
+        Key: { id },
+      })
+    );
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting notification:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to delete notification",
     };
   }
 }

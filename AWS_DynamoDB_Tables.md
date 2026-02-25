@@ -578,3 +578,10 @@ aws dynamodb delete-table --table-name oceanblue-jobs --region us-east-2
 
 # DynamoDB contacts
 table name and id(String)
+
+ Go to DynamoDB console → Create table
+  2. Table name: oceanblue-notifications
+  3. Partition key: id (String)
+  4. Click "Create table"
+  5. After creation, go to table → Additional settings → Turn on TTL
+  6. TTL attribute name: ttl
