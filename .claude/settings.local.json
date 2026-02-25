@@ -9,7 +9,8 @@
       "WebFetch(domain:stitch.withgoogle.com)",
       "Bash(npx tsc:*)",
       "Bash(npx shadcn@latest add:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "WebFetch(domain:dribbble.com)"
     ]
   }
 }

@@ -65,9 +65,16 @@ export default function CareersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("All Departments");
   const [selectedType, setSelectedType] = useState("All Types");
+  const [selectedLocation, setSelectedLocation] = useState("All Locations");
   const [remoteOnly, setRemoteOnly] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  // Get unique locations from jobs
+  const locations = useMemo(() => {
+    const uniqueLocations = [...new Set(jobs.map((job) => job.location))].filter(Boolean).sort();
+    return ["All Locations", ...uniqueLocations];
+  }, [jobs]);
 
   // Fetch jobs from API
   useEffect(() => {
@@ -120,11 +127,12 @@ export default function CareersPage() {
         job.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesDepartment = selectedDepartment === "All Departments" || job.department === selectedDepartment;
       const matchesType = selectedType === "All Types" || job.type === selectedType;
+      const matchesLocation = selectedLocation === "All Locations" || job.location === selectedLocation;
       const matchesRemote = !remoteOnly || job.type === "remote" || job.location.toLowerCase().includes("remote");
 
-      return matchesSearch && matchesDepartment && matchesType && matchesRemote;
+      return matchesSearch && matchesDepartment && matchesType && matchesLocation && matchesRemote;
     });
-  }, [jobs, searchQuery, selectedDepartment, selectedType, remoteOnly]);
+  }, [jobs, searchQuery, selectedDepartment, selectedType, selectedLocation, remoteOnly]);
 
   // Pagination
   const totalPages = Math.ceil(filteredJobs.length / ITEMS_PER_PAGE);
@@ -134,6 +142,7 @@ export default function CareersPage() {
     setSearchQuery("");
     setSelectedDepartment("All Departments");
     setSelectedType("All Types");
+    setSelectedLocation("All Locations");
     setRemoteOnly(false);
     setCurrentPage(1);
   };
@@ -141,6 +150,7 @@ export default function CareersPage() {
   const activeFiltersCount = [
     selectedDepartment !== "All Departments",
     selectedType !== "All Types",
+    selectedLocation !== "All Locations",
     remoteOnly,
   ].filter(Boolean).length;
 
@@ -306,6 +316,20 @@ export default function CareersPage() {
                   >
                     {jobTypes.map((type) => (
                       <option key={type} value={type}>{type === "All Types" ? type : formatJobType(type)}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Location */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                  <select
+                    value={selectedLocation}
+                    onChange={(e) => { setSelectedLocation(e.target.value); setCurrentPage(1); }}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {locations.map((loc) => (
+                      <option key={loc} value={loc}>{loc}</option>
                     ))}
                   </select>
                 </div>
