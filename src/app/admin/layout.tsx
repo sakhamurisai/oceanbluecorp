@@ -21,9 +21,10 @@ import {
   PanelLeftClose,
   PanelLeft,
   MessageSquare,
-  UserCheck,
-  Check,
   Loader2,
+  UsersRound,
+  Building,
+  UserStar,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth, UserRole } from "@/lib/auth";
@@ -54,9 +55,11 @@ const navigation = [
   { name: "Users", href: "/admin/users", icon: UserCog, roles: [UserRole.ADMIN] },
   { name: "Content", href: "/admin/content", icon: FileText, roles: [UserRole.ADMIN] },
   { name: "Job Postings", href: "/admin/jobs", icon: Briefcase, roles: [UserRole.ADMIN, UserRole.HR] },
-  { name: "Candidates", href: "/admin/candidates", icon: UserCheck, roles: [UserRole.ADMIN, UserRole.HR] },
+  { name: "Candidates", href: "/admin/candidates", icon: UserStar, roles: [UserRole.ADMIN, UserRole.HR] },
   { name: "Applications", href: "/admin/applications", icon: Users, roles: [UserRole.ADMIN, UserRole.HR] },
   { name: "Contacts", href: "/admin/contacts", icon: MessageSquare, roles: [UserRole.ADMIN, UserRole.HR] },
+  { name: "Clients", href: "/admin/clients", icon: Building, roles: [UserRole.ADMIN, UserRole.HR] },
+  { name: "Vendors", href: "/admin/vendors", icon: UsersRound, roles: [UserRole.ADMIN, UserRole.HR] },
   { name: "Settings", href: "/admin/settings", icon: Settings, roles: [UserRole.ADMIN] },
 ];
 

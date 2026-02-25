@@ -587,3 +587,21 @@ table name and id(String)
   4. Click "Create table"
   5. After creation, go to table → Additional settings → Turn on TTL
   6. TTL attribute name: ttl
+
+  Table 1: oceanblue-clients
+
+  aws dynamodb create-table \
+    --table-name oceanblue-clients \
+    --attribute-definitions AttributeName=id,AttributeType=S \
+    --key-schema AttributeName=id,KeyType=HASH \
+    --billing-mode PAY_PER_REQUEST \
+    --region us-east-2
+
+  Table 2: oceanblue-vendors
+
+  aws dynamodb create-table \
+    --table-name oceanblue-vendors \
+    --attribute-definitions AttributeName=id,AttributeType=S \
+    --key-schema AttributeName=id,KeyType=HASH \
+    --billing-mode PAY_PER_REQUEST \
+    --region us-east-2

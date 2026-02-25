@@ -28,6 +28,8 @@ const getEnvConfig = () => {
       candidates: process.env.NEXT_AWS_DYNAMODB_TABLE_CANDIDATES || "oceanblue-candidates",
       contacts: process.env.NEXT_AWS_DYNAMODB_TABLE_CONTACTS || "oceanblue-contacts",
       notifications: process.env.NEXT_AWS_DYNAMODB_TABLE_NOTIFICATIONS || "oceanblue-notifications",
+      clients: process.env.NEXT_AWS_DYNAMODB_TABLE_CLIENTS || "oceanblue-clients",
+      vendors: process.env.NEXT_AWS_DYNAMODB_TABLE_VENDORS || "oceanblue-vendors",
     },
   };
 };
@@ -185,6 +187,33 @@ export interface Notification {
   // TTL field - DynamoDB will auto-delete items when this timestamp passes
   // Set to 7 days from creation
   ttl?: number; // Unix timestamp in seconds
+}
+
+export interface Client {
+  id: string; // PK
+  name: string; // Client Name (mandatory)
+  websiteUrl: string; // Website URL (mandatory)
+  status: "active" | "inactive"; // Status (mandatory)
+  email?: string; // Email ID
+  phone?: string; // Phone Number
+  address?: string; // Physical Address
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface Vendor {
+  id: string; // PK
+  name: string; // Vendor Name (mandatory)
+  contactPerson?: string; // Contact Person
+  email?: string; // Email
+  zipCode?: string; // ZIP Code
+  state?: string; // State
+  vendorLead: "hr" | "admin"; // Vendor Lead (mandatory dropdown)
+  createdAt: string;
+  updatedAt?: string;
 }
 
 // ===========================================
@@ -981,6 +1010,317 @@ export async function deleteNotification(id: string): Promise<{ success: boolean
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to delete notification",
+    };
+  }
+}
+
+// ===========================================
+// Client Operations
+// ===========================================
+
+export async function createClient(client: Client): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
+  try {
+    await dbCheck.client!.send(
+      new PutCommand({
+        TableName: getTables().clients,
+        Item: client,
+      })
+    );
+    return { success: true };
+  } catch (error) {
+    console.error("Error creating client:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to create client",
+    };
+  }
+}
+
+export async function getClient(id: string): Promise<{ success: boolean; data?: Client; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
+  try {
+    const result = await dbCheck.client!.send(
+      new GetCommand({
+        TableName: getTables().clients,
+        Key: { id },
+      })
+    );
+    return { success: true, data: result.Item as Client | undefined };
+  } catch (error) {
+    console.error("Error getting client:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to get client",
+    };
+  }
+}
+
+export async function getAllClients(status?: Client["status"]): Promise<{ success: boolean; data?: Client[]; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    console.warn("DynamoDB not available:", dbCheck.error);
+    return { success: true, data: [] };
+  }
+
+  try {
+    let result;
+
+    if (status) {
+      result = await dbCheck.client!.send(
+        new ScanCommand({
+          TableName: getTables().clients,
+          FilterExpression: "#status = :status",
+          ExpressionAttributeNames: {
+            "#status": "status",
+          },
+          ExpressionAttributeValues: {
+            ":status": status,
+          },
+        })
+      );
+    } else {
+      result = await dbCheck.client!.send(
+        new ScanCommand({
+          TableName: getTables().clients,
+        })
+      );
+    }
+
+    return { success: true, data: result.Items as Client[] };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error getting clients:", errorMessage, error);
+    return { success: true, data: [] };
+  }
+}
+
+export async function updateClient(
+  id: string,
+  updates: Partial<Omit<Client, "id" | "createdAt">>
+): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
+  try {
+    const updateExpressions: string[] = ["#updatedAt = :updatedAt"];
+    const expressionAttributeValues: Record<string, unknown> = {
+      ":updatedAt": new Date().toISOString(),
+    };
+    const expressionAttributeNames: Record<string, string> = {
+      "#updatedAt": "updatedAt",
+    };
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value !== undefined) {
+        expressionAttributeNames[`#${key}`] = key;
+        updateExpressions.push(`#${key} = :${key}`);
+        expressionAttributeValues[`:${key}`] = value;
+      }
+    });
+
+    await dbCheck.client!.send(
+      new UpdateCommand({
+        TableName: getTables().clients,
+        Key: { id },
+        UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+        ExpressionAttributeNames: expressionAttributeNames,
+        ExpressionAttributeValues: expressionAttributeValues,
+      })
+    );
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating client:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update client",
+    };
+  }
+}
+
+export async function deleteClient(id: string): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
+  try {
+    await dbCheck.client!.send(
+      new DeleteCommand({
+        TableName: getTables().clients,
+        Key: { id },
+      })
+    );
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting client:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to delete client",
+    };
+  }
+}
+
+// ===========================================
+// Vendor Operations
+// ===========================================
+
+export async function createVendor(vendor: Vendor): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
+  try {
+    await dbCheck.client!.send(
+      new PutCommand({
+        TableName: getTables().vendors,
+        Item: vendor,
+      })
+    );
+    return { success: true };
+  } catch (error) {
+    console.error("Error creating vendor:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to create vendor",
+    };
+  }
+}
+
+export async function getVendor(id: string): Promise<{ success: boolean; data?: Vendor; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
+  try {
+    const result = await dbCheck.client!.send(
+      new GetCommand({
+        TableName: getTables().vendors,
+        Key: { id },
+      })
+    );
+    return { success: true, data: result.Item as Vendor | undefined };
+  } catch (error) {
+    console.error("Error getting vendor:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to get vendor",
+    };
+  }
+}
+
+export async function getAllVendors(vendorLead?: Vendor["vendorLead"]): Promise<{ success: boolean; data?: Vendor[]; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    console.warn("DynamoDB not available:", dbCheck.error);
+    return { success: true, data: [] };
+  }
+
+  try {
+    let result;
+
+    if (vendorLead) {
+      result = await dbCheck.client!.send(
+        new ScanCommand({
+          TableName: getTables().vendors,
+          FilterExpression: "vendorLead = :vendorLead",
+          ExpressionAttributeValues: {
+            ":vendorLead": vendorLead,
+          },
+        })
+      );
+    } else {
+      result = await dbCheck.client!.send(
+        new ScanCommand({
+          TableName: getTables().vendors,
+        })
+      );
+    }
+
+    return { success: true, data: result.Items as Vendor[] };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error getting vendors:", errorMessage, error);
+    return { success: true, data: [] };
+  }
+}
+
+export async function updateVendor(
+  id: string,
+  updates: Partial<Omit<Vendor, "id" | "createdAt">>
+): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
+  try {
+    const updateExpressions: string[] = ["#updatedAt = :updatedAt"];
+    const expressionAttributeValues: Record<string, unknown> = {
+      ":updatedAt": new Date().toISOString(),
+    };
+    const expressionAttributeNames: Record<string, string> = {
+      "#updatedAt": "updatedAt",
+    };
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value !== undefined) {
+        expressionAttributeNames[`#${key}`] = key;
+        updateExpressions.push(`#${key} = :${key}`);
+        expressionAttributeValues[`:${key}`] = value;
+      }
+    });
+
+    await dbCheck.client!.send(
+      new UpdateCommand({
+        TableName: getTables().vendors,
+        Key: { id },
+        UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+        ExpressionAttributeNames: expressionAttributeNames,
+        ExpressionAttributeValues: expressionAttributeValues,
+      })
+    );
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating vendor:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update vendor",
+    };
+  }
+}
+
+export async function deleteVendor(id: string): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
+  try {
+    await dbCheck.client!.send(
+      new DeleteCommand({
+        TableName: getTables().vendors,
+        Key: { id },
+      })
+    );
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting vendor:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to delete vendor",
     };
   }
 }
