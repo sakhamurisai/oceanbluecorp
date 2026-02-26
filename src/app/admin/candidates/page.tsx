@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Search,
   Filter,
@@ -32,6 +33,7 @@ import {
   Briefcase,
   MapPin,
   Trash2,
+  Plus,
 } from "lucide-react";
 import { Application, Job } from "@/lib/aws/dynamodb";
 
@@ -72,6 +74,7 @@ const statusConfig: Record<string, { label: string; color: string; dotColor: str
 type ViewMode = "list" | "cards" | "kanban";
 
 export default function CandidatesPage() {
+  const router = useRouter();
   const [candidates, setCandidates] = useState<CandidateWithJob[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -389,6 +392,13 @@ export default function CandidatesPage() {
           >
             <Download className="w-4 h-4" />
             Export
+          </button>
+          <button
+            onClick={() => router.push("/admin/candidate-applications/new")}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            New Application
           </button>
         </div>
       </div>

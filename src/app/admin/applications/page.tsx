@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Search,
   Filter,
@@ -27,6 +28,7 @@ import {
   X,
   CalendarDays,
   Trash2,
+  Plus,
 } from "lucide-react";
 import { Application, Job } from "@/lib/aws/dynamodb";
 
@@ -81,6 +83,7 @@ type ViewMode = "table" | "cards";
 type DateRange = "all" | "today" | "week" | "month" | "custom";
 
 export default function ApplicationsPage() {
+  const router = useRouter();
   const [applications, setApplications] = useState<ApplicationWithJob[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -429,6 +432,13 @@ export default function ApplicationsPage() {
           >
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Export</span>
+          </button>
+          <button
+            onClick={() => router.push("/admin/candidate-applications/new")}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">New Application</span>
           </button>
         </div>
       </div>

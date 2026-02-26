@@ -31,6 +31,7 @@ const getEnvConfig = () => {
       clients: process.env.NEXT_AWS_DYNAMODB_TABLE_CLIENTS || "oceanblue-clients",
       vendors: process.env.NEXT_AWS_DYNAMODB_TABLE_VENDORS || "oceanblue-vendors",
       counters: process.env.NEXT_AWS_DYNAMODB_TABLE_COUNTERS || "oceanblue-counters",
+      candidateApplications: process.env.NEXT_AWS_DYNAMODB_TABLE_CANDIDATE_APPLICATIONS || "oceanblue-candidate-applications",
     },
   };
 };
@@ -165,6 +166,7 @@ export interface Job {
   // Client Information
   clientId?: string; // FK to oceanblue-clients
   clientName?: string; // Denormalized for display
+  clientNotes?: string; // Quick note about client
 
   // State (separate from location)
   state?: string;
@@ -243,6 +245,33 @@ export interface Vendor {
   vendorLeadRole: "admin" | "hr"; // Role of the vendor lead
   createdAt: string;
   updatedAt?: string;
+}
+
+export interface CandidateApplication {
+  id: string; // PK
+  applicationId: string; // Auto-generated APP-XXXX format
+  firstName: string; // Mandatory
+  lastName: string; // Mandatory
+  phone: string; // Mandatory
+  email: string; // Mandatory
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  source: "LinkedIn" | "Indeed" | "Company Website" | "Referral" | "Agency" | "Other";
+  status: "active" | "inactive" | "hired" | "rejected";
+  jobId?: string; // FK to jobs table
+  jobTitle?: string; // Auto-populated from Job ID
+  ownership?: string; // HR user assigned
+  ownershipName?: string; // HR user name for display
+  workAuthorization: "US Citizen" | "Green Card" | "H1-B" | "OPT/CPT" | "TN Visa" | "Other";
+  createdBy: string; // Auto-populate with current user
+  createdByName?: string;
+  createdAt: string; // Auto-populate with current date
+  updatedAt?: string;
+  rating?: number; // 1-5 star rating
+  notes?: string; // Text area for additional comments
+  addToTalentBench?: boolean; // Add to talent bench for future opportunities
 }
 
 // ===========================================
@@ -1394,6 +1423,206 @@ export async function deleteVendor(id: string): Promise<{ success: boolean; erro
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to delete vendor",
+    };
+  }
+}
+
+// ===========================================
+// Candidate Application Operations
+// ===========================================
+
+/**
+ * Get next application ID with atomic increment
+ * Returns APP-XXXX format (e.g., APP-1001)
+ */
+export async function getNextApplicationId(): Promise<{ success: boolean; applicationId?: string; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
+  const counterId = "candidate-application";
+
+  try {
+    // Use atomic increment to get the next sequence number
+    const result = await dbCheck.client!.send(
+      new UpdateCommand({
+        TableName: getTables().counters,
+        Key: { id: counterId },
+        UpdateExpression: "SET #counter = if_not_exists(#counter, :start) + :inc",
+        ExpressionAttributeNames: {
+          "#counter": "counter",
+        },
+        ExpressionAttributeValues: {
+          ":start": 1000,
+          ":inc": 1,
+        },
+        ReturnValues: "UPDATED_NEW",
+      })
+    );
+
+    const counter = (result.Attributes?.counter as number) || 1001;
+    const applicationId = `APP-${counter.toString().padStart(4, "0")}`;
+
+    return { success: true, applicationId };
+  } catch (error) {
+    console.error("Error getting next application ID:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to generate application ID",
+    };
+  }
+}
+
+export async function createCandidateApplication(application: CandidateApplication): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
+  try {
+    await dbCheck.client!.send(
+      new PutCommand({
+        TableName: getTables().candidateApplications,
+        Item: application,
+      })
+    );
+    return { success: true };
+  } catch (error) {
+    console.error("Error creating candidate application:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to create candidate application",
+    };
+  }
+}
+
+export async function getCandidateApplication(id: string): Promise<{ success: boolean; data?: CandidateApplication; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
+  try {
+    const result = await dbCheck.client!.send(
+      new GetCommand({
+        TableName: getTables().candidateApplications,
+        Key: { id },
+      })
+    );
+    return { success: true, data: result.Item as CandidateApplication | undefined };
+  } catch (error) {
+    console.error("Error getting candidate application:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to get candidate application",
+    };
+  }
+}
+
+export async function getAllCandidateApplications(status?: CandidateApplication["status"]): Promise<{ success: boolean; data?: CandidateApplication[]; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    console.warn("DynamoDB not available:", dbCheck.error);
+    return { success: true, data: [] };
+  }
+
+  try {
+    let result;
+
+    if (status) {
+      result = await dbCheck.client!.send(
+        new ScanCommand({
+          TableName: getTables().candidateApplications,
+          FilterExpression: "#status = :status",
+          ExpressionAttributeNames: {
+            "#status": "status",
+          },
+          ExpressionAttributeValues: {
+            ":status": status,
+          },
+        })
+      );
+    } else {
+      result = await dbCheck.client!.send(
+        new ScanCommand({
+          TableName: getTables().candidateApplications,
+        })
+      );
+    }
+
+    return { success: true, data: result.Items as CandidateApplication[] };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error getting candidate applications:", errorMessage, error);
+    return { success: true, data: [] };
+  }
+}
+
+export async function updateCandidateApplication(
+  id: string,
+  updates: Partial<Omit<CandidateApplication, "id" | "applicationId" | "createdAt" | "createdBy">>
+): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
+  try {
+    const updateExpressions: string[] = ["#updatedAt = :updatedAt"];
+    const expressionAttributeValues: Record<string, unknown> = {
+      ":updatedAt": new Date().toISOString(),
+    };
+    const expressionAttributeNames: Record<string, string> = {
+      "#updatedAt": "updatedAt",
+    };
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value !== undefined) {
+        expressionAttributeNames[`#${key}`] = key;
+        updateExpressions.push(`#${key} = :${key}`);
+        expressionAttributeValues[`:${key}`] = value;
+      }
+    });
+
+    await dbCheck.client!.send(
+      new UpdateCommand({
+        TableName: getTables().candidateApplications,
+        Key: { id },
+        UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+        ExpressionAttributeNames: expressionAttributeNames,
+        ExpressionAttributeValues: expressionAttributeValues,
+      })
+    );
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating candidate application:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update candidate application",
+    };
+  }
+}
+
+export async function deleteCandidateApplication(id: string): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
+  try {
+    await dbCheck.client!.send(
+      new DeleteCommand({
+        TableName: getTables().candidateApplications,
+        Key: { id },
+      })
+    );
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting candidate application:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to delete candidate application",
     };
   }
 }

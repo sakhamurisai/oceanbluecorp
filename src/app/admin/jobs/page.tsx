@@ -51,17 +51,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 
 const statusConfig = {
-  active: {
-    label: "Active",
-    className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/10",
-  },
   open: {
     label: "Open",
     className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/10",
   },
-  paused: {
-    label: "Paused",
-    className: "bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/10",
+  active: {
+    label: "Active",
+    className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/10",
   },
   "on-hold": {
     label: "On Hold",
@@ -88,19 +84,15 @@ export default function JobsPage() {
   const [duplicating, setDuplicating] = useState<string | null>(null);
 
   const exportJobsToExcel = () => {
-    const headers = ["OB-ID", "Title", "Client", "Department", "Location", "Type", "Status", "Pay Rate", "Due Date", "Applicants", "Created At"];
+    const headers = ["Job ID", "Title", "Client", "Location", "Status", "Created Date", "Deadline"];
     const rows = filteredJobs.map(job => [
       job.postingId || "",
       job.title,
       job.clientName || "",
-      job.department,
-      job.location,
-      job.type,
+      `${job.location}${job.state ? `, ${job.state}` : ""}`,
       job.status,
-      job.payRate ? `$${job.payRate}` : "",
+      new Date(job.createdAt).toLocaleDateString(),
       job.submissionDueDate ? new Date(job.submissionDueDate).toLocaleDateString() : "N/A",
-      job.applicationsCount || 0,
-      new Date(job.createdAt).toLocaleDateString()
     ]);
 
     const csvContent = [
@@ -232,7 +224,7 @@ export default function JobsPage() {
           </Button>
           <Button size="sm" onClick={() => router.push("/admin/jobs/new")}>
             <Plus className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Add Job</span>
+            <span className="hidden sm:inline">Create New Job</span>
           </Button>
         </div>
       </div>
@@ -300,11 +292,9 @@ export default function JobsPage() {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="on-hold">On Hold</SelectItem>
-                <SelectItem value="paused">Paused</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
                 <SelectItem value="closed">Closed</SelectItem>
+                <SelectItem value="on-hold">On Hold</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -414,13 +404,13 @@ export default function JobsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>OB-ID</TableHead>
-              <TableHead>Job</TableHead>
+              <TableHead>Job ID</TableHead>
+              <TableHead>Title</TableHead>
               <TableHead>Client</TableHead>
               <TableHead>Location</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Recruitment Manager</TableHead>
-              <TableHead>Pay Rate</TableHead>
+              <TableHead>Created Date</TableHead>
+              <TableHead>Deadline</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -467,33 +457,32 @@ export default function JobsPage() {
                       <SelectTrigger className="h-7 w-[100px] text-xs">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white">
                         <SelectItem value="open">Open</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="on-hold">On Hold</SelectItem>
-                        <SelectItem value="paused">Paused</SelectItem>
-                        <SelectItem value="draft">Draft</SelectItem>
                         <SelectItem value="closed">Closed</SelectItem>
+                        <SelectItem value="on-hold">On Hold</SelectItem>
+                        <SelectItem value="draft">Draft</SelectItem>
                       </SelectContent>
                     </Select>
                   </TableCell>
                   <TableCell>
-                    {job.recruitmentManagerName ? (
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                            {job.recruitmentManagerName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm">{job.recruitmentManagerName}</span>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
+                    <span className="text-sm text-muted-foreground">
+                      {new Date(job.createdAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </span>
                   </TableCell>
                   <TableCell>
-                    {job.payRate ? (
-                      <span className="text-sm font-medium">${job.payRate.toLocaleString()}</span>
+                    {job.submissionDueDate ? (
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(job.submissionDueDate).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </span>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
@@ -505,7 +494,7 @@ export default function JobsPage() {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="bg-white">
                         <DropdownMenuItem onClick={() => router.push(`/admin/jobs/${job.id}`)}>
                           <Eye className="h-4 w-4 mr-2" />
                           View Details

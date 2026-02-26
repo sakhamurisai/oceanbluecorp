@@ -41,16 +41,6 @@ const US_STATES = [
   "Wisconsin", "Wyoming", "Remote"
 ];
 
-const departments = [
-  "ERP Solutions",
-  "Cloud Services",
-  "Data & AI",
-  "Salesforce",
-  "IT Staffing",
-  "Training",
-  "PMO",
-  "Operations",
-];
 
 interface CognitoUser {
   id: string;
@@ -88,6 +78,7 @@ export default function NewJobPage() {
     notifyAdminOnApplication: false,
     clientId: "",
     clientName: "",
+    clientNotes: "",
     recruitmentManagerId: "",
     recruitmentManagerName: "",
     recruitmentManagerEmail: "",
@@ -164,6 +155,7 @@ export default function NewJobPage() {
         notifyAdminOnApplication: formData.notifyAdminOnApplication,
         clientId: formData.clientId || undefined,
         clientName: formData.clientName || undefined,
+        clientNotes: formData.clientNotes || undefined,
         recruitmentManagerId: formData.recruitmentManagerId || undefined,
         recruitmentManagerName: formData.recruitmentManagerName || undefined,
         recruitmentManagerEmail: formData.recruitmentManagerEmail || undefined,
@@ -319,18 +311,19 @@ export default function NewJobPage() {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {formData.clientId && formData.clientId !== "add-new" && (
                 <div className="space-y-2">
-                  <Label>Department *</Label>
-                  <Select value={formData.department} onValueChange={(v) => setFormData({ ...formData, department: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {departments.map((dept) => (
-                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="clientNotes">Quick Note About Client</Label>
+                  <Input
+                    id="clientNotes"
+                    value={formData.clientNotes}
+                    onChange={(e) => setFormData({ ...formData, clientNotes: e.target.value })}
+                    placeholder="Add a quick note about this client..."
+                  />
                 </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Job Type *</Label>
                   <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v as Job["type"] })}>
@@ -374,16 +367,14 @@ export default function NewJobPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Status</Label>
+                  <Label>Status *</Label>
                   <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v as Job["status"] })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
                       <SelectItem value="open">Open</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="on-hold">On Hold</SelectItem>
-                      <SelectItem value="paused">Paused</SelectItem>
                       <SelectItem value="closed">Closed</SelectItem>
+                      <SelectItem value="on-hold">On Hold</SelectItem>
+                      <SelectItem value="draft">Draft</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -568,7 +559,7 @@ export default function NewJobPage() {
                     onCheckedChange={(checked) => setFormData({ ...formData, sendEmailNotification: checked as boolean })}
                   />
                   <Label htmlFor="sendEmailNotification" className="text-sm font-normal cursor-pointer">
-                    Send job posting notification to Recruitment Manager
+                    Send email notification to selected HR candidates
                   </Label>
                 </div>
                 <div className="flex items-center gap-2">
@@ -591,29 +582,6 @@ export default function NewJobPage() {
                     Notify Administrators on new applications
                   </Label>
                 </div>
-
-                {formData.sendEmailNotification && (
-                  <div className="space-y-2 pl-6 pt-2">
-                    <Label className="text-sm text-muted-foreground">Exclude Departments</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {departments.map((dept) => (
-                        <label key={dept} className="flex items-center gap-1.5 text-sm">
-                          <Checkbox
-                            checked={formData.excludedDepartments.includes(dept)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setFormData({ ...formData, excludedDepartments: [...formData.excludedDepartments, dept] });
-                              } else {
-                                setFormData({ ...formData, excludedDepartments: formData.excludedDepartments.filter((d) => d !== dept) });
-                              }
-                            }}
-                          />
-                          {dept}
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 
