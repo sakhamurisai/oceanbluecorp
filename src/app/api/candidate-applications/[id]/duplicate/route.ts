@@ -24,9 +24,12 @@ export async function POST(
       );
     }
 
-    // Generate new application ID
-    const appIdResult = await getNextApplicationId();
-    if (!appIdResult.success || !appIdResult.applicationId) {
+    // Generate new application ID (APP-YEAR-XXXX format)
+    let applicationId: string;
+    try {
+      applicationId = await getNextApplicationId();
+    } catch (err) {
+      console.error("Failed to generate application ID:", err);
       return NextResponse.json(
         { error: "Failed to generate application ID" },
         { status: 500 }
@@ -39,7 +42,7 @@ export async function POST(
     const duplicateApp: CandidateApplication = {
       ...originalApp.data,
       id: uuidv4(),
-      applicationId: appIdResult.applicationId,
+      applicationId,
       createdAt: new Date().toISOString(),
       createdBy: body.createdBy || originalApp.data.createdBy,
       createdByName: body.createdByName || originalApp.data.createdByName,

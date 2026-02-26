@@ -54,9 +54,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate application ID
-    const appIdResult = await getNextApplicationId();
-    if (!appIdResult.success || !appIdResult.applicationId) {
+    // Generate application ID (APP-YEAR-XXXX format)
+    let applicationId: string;
+    try {
+      applicationId = await getNextApplicationId();
+    } catch (err) {
+      console.error("Failed to generate application ID:", err);
       return NextResponse.json(
         { error: "Failed to generate application ID" },
         { status: 500 }
@@ -77,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     const application: CandidateApplication = {
       id: uuidv4(),
-      applicationId: appIdResult.applicationId,
+      applicationId,
       name: fullName, // Combined name for compatibility
       firstName: body.firstName,
       lastName: body.lastName,

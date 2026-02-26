@@ -113,23 +113,66 @@ export interface Resume {
   updatedAt?: string;
 }
 
+// Unified Application interface - supports both portal applications and HR-created applications
 export interface Application {
-  id: string; // PK
-  userId: string; // User ID (GSI)
-  jobId: string; // Job ID (GSI)
-  resumeId: string;
-  status: "pending" | "reviewing" | "interview" | "offered" | "hired" | "rejected";
+  id: string; // PK (UUID)
+  applicationId?: string; // Auto-generated APP-XXXX format for display
+  userId?: string; // User ID (GSI) - for portal applicants
+  jobId?: string; // Job ID (GSI)
+  jobTitle?: string; // Auto-populated from Job ID
+  resumeId?: string; // S3 resume reference
+
+  // Status - unified status values
+  status: "pending" | "reviewing" | "interview" | "offered" | "hired" | "rejected" | "active" | "inactive";
+
+  // Timestamps
   appliedAt: string;
+  createdAt?: string;
   updatedAt?: string;
+
+  // Notes & Rating
   notes?: string;
-  rating?: number;
-  // Applicant info
-  name: string;
+  rating?: number; // 1-5 star rating
+
+  // Applicant info - core fields
+  name: string; // Full name (firstName + lastName)
+  firstName?: string;
+  lastName?: string;
   email: string;
   phone?: string;
+
+  // Extended applicant info
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+
+  // Skills & Experience (for portal applications)
   skills?: string[];
   experience?: string;
   coverLetter?: string;
+
+  // HR-specific fields
+  source?: "LinkedIn" | "Indeed" | "Company Website" | "Referral" | "Agency" | "Career Portal" | "Other";
+  workAuthorization?: "US Citizen" | "Green Card" | "H1-B" | "OPT/CPT" | "TN Visa" | "Other";
+  ownership?: string; // HR user ID assigned
+  ownershipName?: string; // HR user name for display
+
+  // Creator info
+  createdBy?: string; // User ID who created (for HR-created)
+  createdByName?: string;
+
+  // Talent bench flag
+  addToTalentBench?: boolean;
+
+  // Status history for timeline
+  statusHistory?: Array<{
+    status: string;
+    changedAt: string;
+    changedBy?: string;
+    changedByName?: string;
+    notes?: string;
+  }>;
 }
 
 export interface Job {
@@ -508,7 +551,9 @@ export async function updateApplicationStatus(
   id: string,
   status: Application["status"],
   notes?: string,
-  rating?: number
+  rating?: number,
+  changedBy?: string,
+  changedByName?: string
 ): Promise<{ success: boolean; error?: string }> {
   const dbCheck = checkDbAvailable();
   if (!dbCheck.available) {
@@ -516,14 +561,33 @@ export async function updateApplicationStatus(
   }
 
   try {
-    const updateExpressions: string[] = ["#status = :status", "#updatedAt = :updatedAt"];
+    // First get the current application to append to status history
+    const currentApp = await getApplication(id);
+    const statusHistory = currentApp.data?.statusHistory || [];
+
+    // Add new status change to history
+    const newHistoryEntry = {
+      status,
+      changedAt: new Date().toISOString(),
+      changedBy,
+      changedByName,
+      notes,
+    };
+
+    const updateExpressions: string[] = [
+      "#status = :status",
+      "#updatedAt = :updatedAt",
+      "#statusHistory = :statusHistory",
+    ];
     const expressionAttributeValues: Record<string, unknown> = {
       ":status": status,
       ":updatedAt": new Date().toISOString(),
+      ":statusHistory": [...statusHistory, newHistoryEntry],
     };
     const expressionAttributeNames: Record<string, string> = {
       "#status": "status",
       "#updatedAt": "updatedAt",
+      "#statusHistory": "statusHistory",
     };
 
     if (notes !== undefined) {
@@ -550,6 +614,51 @@ export async function updateApplicationStatus(
     return { success: true };
   } catch (error) {
     console.error("Error updating application status:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update application",
+    };
+  }
+}
+
+export async function updateApplication(
+  id: string,
+  updates: Partial<Omit<Application, "id" | "applicationId" | "createdAt" | "createdBy">>
+): Promise<{ success: boolean; error?: string }> {
+  const dbCheck = checkDbAvailable();
+  if (!dbCheck.available) {
+    return { success: false, error: dbCheck.error };
+  }
+
+  try {
+    const updateExpressions: string[] = ["#updatedAt = :updatedAt"];
+    const expressionAttributeValues: Record<string, unknown> = {
+      ":updatedAt": new Date().toISOString(),
+    };
+    const expressionAttributeNames: Record<string, string> = {
+      "#updatedAt": "updatedAt",
+    };
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value !== undefined) {
+        expressionAttributeNames[`#${key}`] = key;
+        updateExpressions.push(`#${key} = :${key}`);
+        expressionAttributeValues[`:${key}`] = value;
+      }
+    });
+
+    await dbCheck.client!.send(
+      new UpdateCommand({
+        TableName: getTables().applications,
+        Key: { id },
+        UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+        ExpressionAttributeNames: expressionAttributeNames,
+        ExpressionAttributeValues: expressionAttributeValues,
+      })
+    );
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating application:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to update application",
@@ -1434,15 +1543,16 @@ export async function deleteVendor(id: string): Promise<{ success: boolean; erro
 
 /**
  * Get next application ID with atomic increment
- * Returns APP-XXXX format (e.g., APP-1001)
+ * Returns APP-YYYY-XXXX format (e.g., APP-2026-0001)
  */
-export async function getNextApplicationId(): Promise<{ success: boolean; applicationId?: string; error?: string }> {
+export async function getNextApplicationId(): Promise<string> {
   const dbCheck = checkDbAvailable();
   if (!dbCheck.available) {
-    return { success: false, error: dbCheck.error };
+    throw new Error(dbCheck.error || "Database not available");
   }
 
-  const counterId = "candidate-application";
+  const currentYear = new Date().getFullYear();
+  const counterId = `application-${currentYear}`;
 
   try {
     // Use atomic increment to get the next sequence number
@@ -1455,23 +1565,20 @@ export async function getNextApplicationId(): Promise<{ success: boolean; applic
           "#counter": "counter",
         },
         ExpressionAttributeValues: {
-          ":start": 1000,
+          ":start": 0,
           ":inc": 1,
         },
         ReturnValues: "UPDATED_NEW",
       })
     );
 
-    const counter = (result.Attributes?.counter as number) || 1001;
-    const applicationId = `APP-${counter.toString().padStart(4, "0")}`;
+    const counter = (result.Attributes?.counter as number) || 1;
+    const applicationId = `APP-${currentYear}-${counter.toString().padStart(4, "0")}`;
 
-    return { success: true, applicationId };
+    return applicationId;
   } catch (error) {
     console.error("Error getting next application ID:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to generate application ID",
-    };
+    throw new Error(error instanceof Error ? error.message : "Failed to generate application ID");
   }
 }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getApplication,
   updateApplicationStatus,
+  updateApplication,
   deleteApplication,
   Application,
 } from "@/lib/aws/dynamodb";
@@ -40,7 +41,7 @@ export async function GET(
   }
 }
 
-// PUT /api/applications/[id] - Update application status
+// PUT /api/applications/[id] - Update application (supports full updates and status changes)
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -58,7 +59,7 @@ export async function PUT(
       );
     }
 
-    // Validate status
+    // Validate status if provided
     const validStatuses: Application["status"][] = [
       "pending",
       "reviewing",
@@ -66,6 +67,8 @@ export async function PUT(
       "offered",
       "hired",
       "rejected",
+      "active",
+      "inactive",
     ];
 
     if (body.status && !validStatuses.includes(body.status)) {
@@ -75,18 +78,94 @@ export async function PUT(
       );
     }
 
-    const result = await updateApplicationStatus(
-      id,
-      body.status || existingApp.data.status,
-      body.notes,
-      body.rating
-    );
+    // Check if this is a status change or a full update
+    const isStatusChange = body.status && body.status !== existingApp.data.status;
+    const hasFullUpdateFields = body.firstName || body.lastName || body.address ||
+      body.city || body.state || body.workAuthorization || body.source ||
+      body.ownership || body.skills || body.experience || body.jobId !== undefined;
 
-    if (!result.success) {
-      return NextResponse.json(
-        { error: result.error || "Failed to update application" },
-        { status: 500 }
+    if (hasFullUpdateFields) {
+      // Full application update
+      const updates: Partial<Application> = {};
+
+      // Update name fields
+      if (body.firstName !== undefined) updates.firstName = body.firstName;
+      if (body.lastName !== undefined) updates.lastName = body.lastName;
+      if (body.firstName || body.lastName) {
+        updates.name = body.name || `${body.firstName || existingApp.data.firstName || ""} ${body.lastName || existingApp.data.lastName || ""}`.trim();
+      } else if (body.name !== undefined) {
+        updates.name = body.name;
+      }
+
+      // Contact info
+      if (body.email !== undefined) updates.email = body.email;
+      if (body.phone !== undefined) updates.phone = body.phone;
+
+      // Address
+      if (body.address !== undefined) updates.address = body.address;
+      if (body.city !== undefined) updates.city = body.city;
+      if (body.state !== undefined) updates.state = body.state;
+      if (body.zipCode !== undefined) updates.zipCode = body.zipCode;
+
+      // Application details
+      if (body.status !== undefined) updates.status = body.status;
+      if (body.jobId !== undefined) updates.jobId = body.jobId;
+      if (body.jobTitle !== undefined) updates.jobTitle = body.jobTitle;
+      if (body.source !== undefined) updates.source = body.source;
+      if (body.workAuthorization !== undefined) updates.workAuthorization = body.workAuthorization;
+      if (body.ownership !== undefined) updates.ownership = body.ownership;
+      if (body.ownershipName !== undefined) updates.ownershipName = body.ownershipName;
+
+      // Skills & experience
+      if (body.skills !== undefined) updates.skills = body.skills;
+      if (body.experience !== undefined) updates.experience = body.experience;
+      if (body.coverLetter !== undefined) updates.coverLetter = body.coverLetter;
+
+      // Notes & rating
+      if (body.notes !== undefined) updates.notes = body.notes;
+      if (body.rating !== undefined) updates.rating = body.rating;
+
+      // Talent bench flag
+      if (body.addToTalentBench !== undefined) updates.addToTalentBench = body.addToTalentBench;
+
+      // Handle status history for status changes
+      if (isStatusChange) {
+        const statusHistory = existingApp.data.statusHistory || [];
+        const newHistoryEntry = {
+          status: body.status,
+          changedAt: new Date().toISOString(),
+          changedBy: body.changedBy,
+          changedByName: body.changedByName,
+          notes: body.statusNote,
+        };
+        updates.statusHistory = [...statusHistory, newHistoryEntry];
+      }
+
+      const result = await updateApplication(id, updates);
+
+      if (!result.success) {
+        return NextResponse.json(
+          { error: result.error || "Failed to update application" },
+          { status: 500 }
+        );
+      }
+    } else {
+      // Simple status/notes/rating update
+      const result = await updateApplicationStatus(
+        id,
+        body.status || existingApp.data.status,
+        body.notes,
+        body.rating,
+        body.changedBy,
+        body.changedByName
       );
+
+      if (!result.success) {
+        return NextResponse.json(
+          { error: result.error || "Failed to update application" },
+          { status: 500 }
+        );
+      }
     }
 
     // Fetch updated application
