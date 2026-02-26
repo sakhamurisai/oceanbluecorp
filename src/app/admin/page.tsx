@@ -446,15 +446,16 @@ export default function AdminDashboard() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
-                              {app.name
+                              {(app.name || "NA")
                                 .split(" ")
                                 .map((n) => n[0])
-                                .join("")}
+                                .join("")
+                                .slice(0, 2)}
                             </div>
                             <div>
-                              <div className="font-medium">{app.name}</div>
+                              <div className="font-medium">{app.name || "Unknown"}</div>
                               <div className="text-xs text-muted-foreground">
-                                {app.email}
+                                {app.email || "No email"}
                               </div>
                             </div>
                           </div>

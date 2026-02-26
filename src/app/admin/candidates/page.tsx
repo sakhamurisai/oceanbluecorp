@@ -146,9 +146,11 @@ export default function CandidatesPage() {
   const positions = [...new Set(candidates.map((c) => c.jobTitle).filter(Boolean))];
 
   const filteredCandidates = candidates.filter((c) => {
+    const candidateName = c.name || "";
+    const candidateEmail = c.email || "";
     const matchesSearch =
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      candidateName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      candidateEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (c.jobTitle?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
     const matchesStatus = statusFilter === "all" || c.status === statusFilter;
     const matchesPosition = positionFilter === "all" || c.jobTitle === positionFilter;
@@ -480,10 +482,10 @@ export default function CandidatesPage() {
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                        {candidate.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                        {(candidate.name || "NA").split(" ").map((n) => n[0]).join("").slice(0, 2)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-slate-900 truncate">{candidate.name}</h4>
+                        <h4 className="font-semibold text-slate-900 truncate">{candidate.name || "Unknown"}</h4>
                         <p className="text-sm text-slate-500 truncate">{candidate.jobTitle}</p>
                         <div className="flex items-center gap-2 mt-2">
                           <div className="flex items-center gap-0.5">
@@ -527,10 +529,10 @@ export default function CandidatesPage() {
             >
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-semibold">
-                  {candidate.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                  {(candidate.name || "NA").split(" ").map((n) => n[0]).join("").slice(0, 2)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-slate-900">{candidate.name}</h4>
+                  <h4 className="font-semibold text-slate-900">{candidate.name || "Unknown"}</h4>
                   <p className="text-sm text-slate-500 truncate">{candidate.email}</p>
                 </div>
               </div>
@@ -599,10 +601,10 @@ export default function CandidatesPage() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
-                        {candidate.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                        {(candidate.name || "NA").split(" ").map((n) => n[0]).join("").slice(0, 2)}
                       </div>
                       <div>
-                        <p className="font-medium text-slate-900">{candidate.name}</p>
+                        <p className="font-medium text-slate-900">{candidate.name || "Unknown"}</p>
                         <p className="text-sm text-slate-500">{candidate.email}</p>
                       </div>
                     </div>
@@ -687,10 +689,10 @@ export default function CandidatesPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
-                  {selectedCandidate.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                  {(selectedCandidate.name || "NA").split(" ").map((n) => n[0]).join("").slice(0, 2)}
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">{selectedCandidate.name}</h2>
+                  <h2 className="text-xl font-bold text-slate-900">{selectedCandidate.name || "Unknown"}</h2>
                   <p className="text-slate-500">{selectedCandidate.jobTitle}</p>
                 </div>
               </div>
@@ -868,7 +870,7 @@ export default function CandidatesPage() {
                         <span className="text-sm font-medium">Schedule Interview</span>
                       </button>
                       <button
-                        onClick={() => handleDeleteCandidate(selectedCandidate.id, selectedCandidate.name)}
+                        onClick={() => handleDeleteCandidate(selectedCandidate.id, selectedCandidate.name || "this candidate")}
                         className="flex items-center gap-3 px-4 py-2.5 border border-red-200 rounded-xl hover:bg-red-50 transition-colors w-full text-red-600"
                       >
                         <Trash2 className="w-4 h-4" />

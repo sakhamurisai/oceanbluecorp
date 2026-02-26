@@ -17,6 +17,10 @@ import {
   User,
   FileCheck,
   Building2,
+  Shield,
+  Hash,
+  StickyNote,
+  UserCog,
 } from "lucide-react";
 import { CandidateApplication, Job } from "@/lib/aws/dynamodb";
 
@@ -149,8 +153,8 @@ export default function CandidateApplicationDetailPage({ params }: { params: Pro
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-sm text-primary">{application.applicationId}</span>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-mono text-sm text-primary font-medium">{application.applicationId}</span>
               <Badge variant="outline" className={status.className}>{status.label}</Badge>
             </div>
             <h1 className="text-2xl font-semibold tracking-tight">
@@ -191,20 +195,31 @@ export default function CandidateApplicationDetailPage({ params }: { params: Pro
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Contact Information */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {/* Personal Information */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Contact Information
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Personal Information
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs text-muted-foreground">First Name</p>
+                <p className="font-medium">{application.firstName}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Last Name</p>
+                <p className="font-medium">{application.lastName}</p>
+              </div>
+            </div>
+            <Separator />
             <div className="flex items-center gap-3">
               <Phone className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-sm text-muted-foreground">Phone</p>
+                <p className="text-xs text-muted-foreground">Phone</p>
                 <a href={`tel:${application.phone}`} className="font-medium hover:text-primary">
                   {application.phone}
                 </a>
@@ -213,138 +228,212 @@ export default function CandidateApplicationDetailPage({ params }: { params: Pro
             <div className="flex items-center gap-3">
               <Mail className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-sm text-muted-foreground">Email</p>
-                <a href={`mailto:${application.email}`} className="font-medium hover:text-primary">
+                <p className="text-xs text-muted-foreground">Email</p>
+                <a href={`mailto:${application.email}`} className="font-medium hover:text-primary break-all">
                   {application.email}
                 </a>
               </div>
             </div>
-            {(application.address || application.city || application.state) && (
-              <div className="flex items-start gap-3">
-                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Address</p>
-                  <p className="font-medium">
-                    {application.address && <span>{application.address}<br /></span>}
-                    {[application.city, application.state, application.zipCode].filter(Boolean).join(", ")}
-                  </p>
-                </div>
+          </CardContent>
+        </Card>
+
+        {/* Address Information */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Address Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <p className="text-xs text-muted-foreground">Address</p>
+              <p className="font-medium">{application.address || "-"}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs text-muted-foreground">City</p>
+                <p className="font-medium">{application.city || "-"}</p>
               </div>
-            )}
+              <div>
+                <p className="text-xs text-muted-foreground">State</p>
+                <p className="font-medium">{application.state || "-"}</p>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">ZIP Code</p>
+              <p className="font-medium">{application.zipCode || "-"}</p>
+            </div>
           </CardContent>
         </Card>
 
         {/* Application Details */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Briefcase className="h-5 w-5" />
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Hash className="h-4 w-4" />
               Application Details
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <CardContent className="space-y-3">
+            <div>
+              <p className="text-xs text-muted-foreground">Application ID</p>
+              <p className="font-mono font-medium text-primary">{application.applicationId}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Source</p>
+              <p className="font-medium">{application.source}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Status</p>
+              <Badge variant="outline" className={status.className}>{status.label}</Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Job Information */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
+              Job Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <p className="text-xs text-muted-foreground">Job ID</p>
+              <p className="font-mono font-medium">{job?.postingId || application.jobId || "-"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Job Title</p>
+              <p className="font-medium">{application.jobTitle || "-"}</p>
+            </div>
+            {job && (
+              <>
+                <div>
+                  <p className="text-xs text-muted-foreground">Location</p>
+                  <p className="font-medium">{job.location}{job.state ? `, ${job.state}` : ""}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Client</p>
+                  <p className="font-medium">{job.clientName || "-"}</p>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Work Authorization & Ownership */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Authorization & Assignment
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <p className="text-xs text-muted-foreground">Work Authorization</p>
+              <p className="font-medium">{application.workAuthorization}</p>
+            </div>
+            <Separator />
+            <div className="flex items-center gap-3">
+              <UserCog className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-sm text-muted-foreground">Source</p>
-                <p className="font-medium">{application.source}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Work Authorization</p>
-                <p className="font-medium">{application.workAuthorization}</p>
+                <p className="text-xs text-muted-foreground">Ownership (Assigned To)</p>
+                <p className="font-medium">{application.ownershipName || "-"}</p>
               </div>
             </div>
-            {application.jobId && (
-              <>
-                <Separator />
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Applied For</p>
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">{application.jobTitle || "Unknown Position"}</p>
-                      {job && (
-                        <p className="text-xs text-muted-foreground">
-                          {job.postingId} - {job.location}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-            {application.ownershipName && (
-              <>
-                <Separator />
-                <div>
-                  <p className="text-sm text-muted-foreground">Assigned To</p>
-                  <p className="font-medium">{application.ownershipName}</p>
-                </div>
-              </>
-            )}
           </CardContent>
         </Card>
 
         {/* Rating */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Star className="h-5 w-5" />
-              Rating
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Star className="h-4 w-4" />
+              Rating & Talent Bench
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  className={`w-8 h-8 ${
-                    star <= (application.rating || 0)
-                      ? "fill-amber-400 text-amber-400"
-                      : "text-gray-300"
-                  }`}
-                />
-              ))}
-              <span className="ml-2 text-lg font-medium">
-                {application.rating || 0}/5
-              </span>
+          <CardContent className="space-y-3">
+            <div>
+              <p className="text-xs text-muted-foreground mb-2">Rating</p>
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={`w-6 h-6 ${
+                      star <= (application.rating || 0)
+                        ? "fill-amber-400 text-amber-400"
+                        : "text-gray-300"
+                    }`}
+                  />
+                ))}
+                <span className="ml-2 text-sm font-medium">
+                  {application.rating || 0}/5
+                </span>
+              </div>
             </div>
+            <Separator />
             {application.addToTalentBench && (
-              <div className="mt-4 flex items-center gap-2 text-sm text-emerald-600">
+              <div className="flex items-center gap-2 text-sm text-emerald-600">
                 <FileCheck className="h-4 w-4" />
                 <span>Added to Talent Bench</span>
               </div>
             )}
+            {!application.addToTalentBench && (
+              <div className="text-sm text-muted-foreground">
+                Not added to Talent Bench
+              </div>
+            )}
           </CardContent>
         </Card>
+      </div>
 
-        {/* Metadata */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Metadata
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Created By</p>
-                <p className="font-medium">{application.createdByName || "System"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Created On</p>
-                <p className="font-medium">
-                  {new Date(application.createdAt).toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-              </div>
+      {/* Notes Section */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <StickyNote className="h-4 w-4" />
+            Notes
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {application.notes ? (
+            <p className="whitespace-pre-wrap text-sm">{application.notes}</p>
+          ) : (
+            <p className="text-sm text-muted-foreground">No notes added</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Metadata */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Metadata
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Created By</p>
+              <p className="font-medium">{application.createdByName || "System"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Created On</p>
+              <p className="font-medium">
+                {new Date(application.createdAt).toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </p>
             </div>
             {application.updatedAt && (
               <div>
-                <p className="text-sm text-muted-foreground">Last Modified</p>
+                <p className="text-xs text-muted-foreground">Last Modified</p>
                 <p className="font-medium">
                   {new Date(application.updatedAt).toLocaleDateString("en-US", {
                     month: "long",
@@ -354,21 +443,9 @@ export default function CandidateApplicationDetailPage({ params }: { params: Pro
                 </p>
               </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Notes */}
-      {application.notes && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Notes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="whitespace-pre-wrap">{application.notes}</p>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Delete Confirmation */}
       {showDeleteConfirm && (

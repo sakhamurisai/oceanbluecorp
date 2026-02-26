@@ -292,6 +292,7 @@ export default function JobsPage() {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="closed">Closed</SelectItem>
                 <SelectItem value="on-hold">On Hold</SelectItem>
                 <SelectItem value="draft">Draft</SelectItem>
@@ -459,6 +460,7 @@ export default function JobsPage() {
                       </SelectTrigger>
                       <SelectContent className="bg-white">
                         <SelectItem value="open">Open</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
                         <SelectItem value="closed">Closed</SelectItem>
                         <SelectItem value="on-hold">On Hold</SelectItem>
                         <SelectItem value="draft">Draft</SelectItem>

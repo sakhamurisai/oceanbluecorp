@@ -31,7 +31,6 @@ const getEnvConfig = () => {
       clients: process.env.NEXT_AWS_DYNAMODB_TABLE_CLIENTS || "oceanblue-clients",
       vendors: process.env.NEXT_AWS_DYNAMODB_TABLE_VENDORS || "oceanblue-vendors",
       counters: process.env.NEXT_AWS_DYNAMODB_TABLE_COUNTERS || "oceanblue-counters",
-      candidateApplications: process.env.NEXT_AWS_DYNAMODB_TABLE_CANDIDATE_APPLICATIONS || "oceanblue-candidate-applications",
     },
   };
 };
@@ -250,6 +249,7 @@ export interface Vendor {
 export interface CandidateApplication {
   id: string; // PK
   applicationId: string; // Auto-generated APP-XXXX format
+  name: string; // Combined firstName + lastName for compatibility
   firstName: string; // Mandatory
   lastName: string; // Mandatory
   phone: string; // Mandatory
@@ -268,6 +268,7 @@ export interface CandidateApplication {
   createdBy: string; // Auto-populate with current user
   createdByName?: string;
   createdAt: string; // Auto-populate with current date
+  appliedAt: string; // Same as createdAt for compatibility with existing pages
   updatedAt?: string;
   rating?: number; // 1-5 star rating
   notes?: string; // Text area for additional comments
@@ -1483,7 +1484,7 @@ export async function createCandidateApplication(application: CandidateApplicati
   try {
     await dbCheck.client!.send(
       new PutCommand({
-        TableName: getTables().candidateApplications,
+        TableName: getTables().applications,
         Item: application,
       })
     );
@@ -1506,7 +1507,7 @@ export async function getCandidateApplication(id: string): Promise<{ success: bo
   try {
     const result = await dbCheck.client!.send(
       new GetCommand({
-        TableName: getTables().candidateApplications,
+        TableName: getTables().applications,
         Key: { id },
       })
     );
@@ -1533,7 +1534,7 @@ export async function getAllCandidateApplications(status?: CandidateApplication[
     if (status) {
       result = await dbCheck.client!.send(
         new ScanCommand({
-          TableName: getTables().candidateApplications,
+          TableName: getTables().applications,
           FilterExpression: "#status = :status",
           ExpressionAttributeNames: {
             "#status": "status",
@@ -1546,7 +1547,7 @@ export async function getAllCandidateApplications(status?: CandidateApplication[
     } else {
       result = await dbCheck.client!.send(
         new ScanCommand({
-          TableName: getTables().candidateApplications,
+          TableName: getTables().applications,
         })
       );
     }
@@ -1587,7 +1588,7 @@ export async function updateCandidateApplication(
 
     await dbCheck.client!.send(
       new UpdateCommand({
-        TableName: getTables().candidateApplications,
+        TableName: getTables().applications,
         Key: { id },
         UpdateExpression: `SET ${updateExpressions.join(", ")}`,
         ExpressionAttributeNames: expressionAttributeNames,
@@ -1613,7 +1614,7 @@ export async function deleteCandidateApplication(id: string): Promise<{ success:
   try {
     await dbCheck.client!.send(
       new DeleteCommand({
-        TableName: getTables().candidateApplications,
+        TableName: getTables().applications,
         Key: { id },
       })
     );

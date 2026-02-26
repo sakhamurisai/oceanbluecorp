@@ -72,9 +72,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const now = new Date().toISOString();
+    const fullName = `${body.firstName} ${body.lastName}`.trim();
+
     const application: CandidateApplication = {
       id: uuidv4(),
       applicationId: appIdResult.applicationId,
+      name: fullName, // Combined name for compatibility
       firstName: body.firstName,
       lastName: body.lastName,
       phone: body.phone,
@@ -92,7 +96,8 @@ export async function POST(request: NextRequest) {
       workAuthorization: body.workAuthorization,
       createdBy: body.createdBy || "system",
       createdByName: body.createdByName,
-      createdAt: new Date().toISOString(),
+      createdAt: now,
+      appliedAt: now, // Same as createdAt for compatibility
       rating: body.rating,
       notes: body.notes,
       addToTalentBench: body.addToTalentBench || false,

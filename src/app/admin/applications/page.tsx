@@ -192,7 +192,7 @@ export default function ApplicationsPage() {
 
   const filteredApplications = applications.filter((app) => {
     const matchesSearch =
-      app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (app.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (app.jobTitle?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
     const matchesStatus = statusFilter === "all" || app.status === statusFilter;
@@ -271,7 +271,7 @@ export default function ApplicationsPage() {
   const handleExportCSV = () => {
     const headers = ["Name", "Email", "Phone", "Position", "Department", "Status", "Applied Date", "Rating", "Experience", "Skills", "Cover Letter", "Notes", "Posted By"];
     const rows = filteredApplications.map((app) => [
-      `"${app.name}"`,
+      `"${app.name || "Unknown"}"`,
       `"${app.email}"`,
       `"${app.phone || ""}"`,
       `"${app.jobTitle || ""}"`,
@@ -701,10 +701,10 @@ export default function ApplicationsPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-semibold text-xs">
-                            {app.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                            {(app.name || "NA").split(" ").map((n) => n[0]).join("").slice(0, 2)}
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{app.name}</p>
+                            <p className="text-sm font-medium text-gray-900">{app.name || "Unknown"}</p>
                             <p className="text-xs text-gray-500">{app.email}</p>
                           </div>
                         </div>
@@ -812,10 +812,10 @@ export default function ApplicationsPage() {
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-semibold text-xs">
-                      {app.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                      {(app.name || "NA").split(" ").map((n) => n[0]).join("").slice(0, 2)}
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900 text-sm">{app.name}</p>
+                      <p className="font-medium text-gray-900 text-sm">{app.name || "Unknown"}</p>
                       <p className="text-xs text-gray-500">{app.jobTitle}</p>
                     </div>
                   </div>
@@ -879,11 +879,11 @@ export default function ApplicationsPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                          {app.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                          {(app.name || "NA").split(" ").map((n) => n[0]).join("").slice(0, 2)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                            <h3 className="font-medium text-gray-900 truncate">{app.name}</h3>
+                            <h3 className="font-medium text-gray-900 truncate">{app.name || "Unknown"}</h3>
                             {/* Rating - hidden on mobile */}
                             <div className="hidden sm:flex items-center gap-0.5">
                               {[1, 2, 3, 4, 5].map((star) => (
@@ -1072,7 +1072,7 @@ export default function ApplicationsPage() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDeleteApplication(app.id, app.name);
+                              handleDeleteApplication(app.id, app.name || "this applicant");
                             }}
                             className="w-full px-3 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium flex items-center justify-center gap-2"
                           >
