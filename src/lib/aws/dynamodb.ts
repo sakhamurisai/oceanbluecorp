@@ -226,8 +226,12 @@ export interface Job {
   assignedToId?: string; // Team member ID
   assignedToName?: string; // Team member name
 
+  // Vendor Information
+  vendorId?: string; // FK to oceanblue-vendors
+  vendorName?: string; // Denormalized for display
+
   // Email Notification Settings for job posting
-  sendEmailNotification?: boolean;
+  sendEmailNotification?: string[]; // Array of user IDs/emails to notify
   excludedDepartments?: string[];
   notificationSentAt?: string;
 }

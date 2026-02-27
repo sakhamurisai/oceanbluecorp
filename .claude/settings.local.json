@@ -10,7 +10,8 @@
       "Bash(npx tsc:*)",
       "Bash(npx shadcn@latest add:*)",
       "Bash(git checkout:*)",
-      "WebFetch(domain:dribbble.com)"
+      "WebFetch(domain:dribbble.com)",
+      "Bash(find:*)"
     ]
   }
 }

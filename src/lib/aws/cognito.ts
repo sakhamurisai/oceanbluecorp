@@ -8,6 +8,7 @@ import {
   AdminDisableUserCommand,
   AdminEnableUserCommand,
   AdminDeleteUserCommand,
+  AdminUpdateUserAttributesCommand,
   ListGroupsCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 
@@ -336,6 +337,32 @@ export async function deleteUser(username: string): Promise<{ success: boolean; 
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to delete user",
+    };
+  }
+}
+
+// Admin update user attributes (name, phone_number, etc.)
+export async function updateCognitoUserAttributes(
+  username: string,
+  attributes: { Name: string; Value: string }[]
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const config = getConfig();
+    const client = createCognitoClient();
+
+    const command = new AdminUpdateUserAttributesCommand({
+      UserPoolId: config.userPoolId,
+      Username: username,
+      UserAttributes: attributes,
+    });
+
+    await client.send(command);
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating user attributes:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update user attributes",
     };
   }
 }

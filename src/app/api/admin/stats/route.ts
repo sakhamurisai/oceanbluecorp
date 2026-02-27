@@ -78,6 +78,23 @@ export async function GET() {
         acc[job.department] = (acc[job.department] || 0) + 1;
         return acc;
       }, {} as Record<string, number>),
+
+      // Monthly applications trend (last 6 months)
+      monthlyApplications: (() => {
+        const now = new Date();
+        return Array.from({ length: 6 }, (_, i) => {
+          const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+          const nextMonth = new Date(now.getFullYear(), now.getMonth() - 5 + i + 1, 1);
+          const count = applications.filter((a) => {
+            const appDate = new Date(a.appliedAt);
+            return appDate >= d && appDate < nextMonth;
+          }).length;
+          return {
+            month: d.toLocaleString("en-US", { month: "short" }) + " '" + String(d.getFullYear()).slice(2),
+            applications: count,
+          };
+        });
+      })(),
     };
 
     return NextResponse.json({ stats });
