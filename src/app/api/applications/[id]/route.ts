@@ -82,7 +82,8 @@ export async function PUT(
     const isStatusChange = body.status && body.status !== existingApp.data.status;
     const hasFullUpdateFields = body.firstName || body.lastName || body.address ||
       body.city || body.state || body.workAuthorization || body.source ||
-      body.ownership || body.skills || body.experience || body.jobId !== undefined;
+      body.ownership || body.skills || body.experience || body.jobId !== undefined ||
+      body.resumeId !== undefined || body.resumeFileName !== undefined;
 
     if (hasFullUpdateFields) {
       // Full application update
@@ -127,6 +128,10 @@ export async function PUT(
 
       // Talent bench flag
       if (body.addToTalentBench !== undefined) updates.addToTalentBench = body.addToTalentBench;
+
+      // Resume fields
+      if (body.resumeId !== undefined) updates.resumeId = body.resumeId;
+      if (body.resumeFileName !== undefined) updates.resumeFileName = body.resumeFileName;
 
       // Handle status history for status changes
       if (isStatusChange) {

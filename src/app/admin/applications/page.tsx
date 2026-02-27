@@ -159,6 +159,11 @@ export default function ApplicationsPage() {
   const [noteText, setNoteText] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [showTimeline, setShowTimeline] = useState<string | null>(null);
+  const [uploadingResume, setUploadingResume] = useState<string | null>(null); // applicationId being uploaded
+  const [resumeUploadError, setResumeUploadError] = useState<string | null>(null);
+  // For create/edit form resume attachment
+  const [pendingResumeFile, setPendingResumeFile] = useState<File | null>(null);
+  const [formResumeUploading, setFormResumeUploading] = useState(false);
 
   // Form states
   const [pageMode, setPageMode] = useState<PageMode>("list");
@@ -432,6 +437,64 @@ export default function ApplicationsPage() {
     }
   };
 
+  const handleResumeUpload = async (appId: string, file: File) => {
+    setUploadingResume(appId);
+    setResumeUploadError(null);
+    try {
+      // Step 1: Get presigned upload URL
+      const uploadRes = await fetch("/api/resume/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: appId, // use appId as userId for scoping
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+        }),
+      });
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok) throw new Error(uploadData.error || "Failed to get upload URL");
+
+      const { uploadUrl, resumeId } = uploadData;
+
+      // Step 2: Upload file directly to S3
+      const s3Res = await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type },
+      });
+      if (!s3Res.ok) throw new Error("Failed to upload file to storage");
+
+      // Step 3: Update application with new resumeId
+      const updateRes = await fetch(`/api/applications/${appId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resumeId,
+          resumeFileName: file.name,
+        }),
+      });
+      if (!updateRes.ok) throw new Error("Failed to link resume to application");
+
+      // Update local state
+      setApplications((prev) =>
+        prev.map((app) =>
+          app.id === appId ? { ...app, resumeId, resumeFileName: file.name } : app
+        )
+      );
+
+      if (selectedApplication?.id === appId) {
+        setSelectedApplication((prev) =>
+          prev ? { ...prev, resumeId, resumeFileName: file.name } : prev
+        );
+      }
+    } catch (err) {
+      setResumeUploadError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploadingResume(null);
+    }
+  };
+
   const handleDeleteApplication = async (appId: string, appName: string) => {
     if (!confirm(`Are you sure you want to delete the application from ${appName}? This action cannot be undone.`)) {
       return;
@@ -521,6 +584,7 @@ export default function ApplicationsPage() {
       coverLetter: "",
     });
     setHoverRating(0);
+    setPendingResumeFile(null);
   };
 
   const handleCreateNew = () => {
@@ -589,6 +653,42 @@ export default function ApplicationsPage() {
         throw new Error("Please fill in all required fields (First Name, Last Name, Email)");
       }
 
+      // Upload resume if a file is attached
+      let resumeId: string | undefined;
+      let resumeFileName: string | undefined;
+
+      if (pendingResumeFile) {
+        setFormResumeUploading(true);
+        try {
+          // Step 1: Get presigned upload URL
+          const uploadRes = await fetch("/api/resume/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: formData.email, // use email as userId scope
+              fileName: pendingResumeFile.name,
+              fileType: pendingResumeFile.type,
+              fileSize: pendingResumeFile.size,
+            }),
+          });
+          const uploadData = await uploadRes.json();
+          if (!uploadRes.ok) throw new Error(uploadData.error || "Failed to get upload URL");
+
+          resumeId = uploadData.resumeId;
+          resumeFileName = pendingResumeFile.name;
+
+          // Step 2: PUT file to S3
+          const s3Res = await fetch(uploadData.uploadUrl, {
+            method: "PUT",
+            body: pendingResumeFile,
+            headers: { "Content-Type": pendingResumeFile.type },
+          });
+          if (!s3Res.ok) throw new Error("Failed to upload resume to storage");
+        } finally {
+          setFormResumeUploading(false);
+        }
+      }
+
       const applicationData = {
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -614,6 +714,8 @@ export default function ApplicationsPage() {
         coverLetter: formData.coverLetter || undefined,
         createdBy: user?.id || "system",
         createdByName: user?.name || user?.email?.split("@")[0] || "System",
+        // Include resume if uploaded
+        ...(resumeId && { resumeId, resumeFileName }),
       };
 
       let response;
@@ -643,6 +745,7 @@ export default function ApplicationsPage() {
       alert(err instanceof Error ? err.message : "Failed to save application");
     } finally {
       setSubmitting(false);
+      setFormResumeUploading(false);
     }
   };
 
@@ -1013,14 +1116,92 @@ export default function ApplicationsPage() {
 
               <Separator />
 
+              {/* Resume Attachment */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <File className="h-5 w-5" />
+                  Resume
+                </h3>
+
+                {/* Show existing resume info when editing */}
+                {pageMode === "edit" && selectedApplication?.resumeId && !pendingResumeFile && (
+                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                    <FileText className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-blue-800">Current resume attached</p>
+                      {selectedApplication.resumeFileName && (
+                        <p className="text-xs text-blue-600 truncate">{selectedApplication.resumeFileName}</p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleViewResume(selectedApplication.resumeId!)}
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap"
+                    >
+                      View
+                    </button>
+                  </div>
+                )}
+
+                {/* Selected pending file */}
+                {pendingResumeFile ? (
+                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <File className="h-4 w-4 text-green-600 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-green-800 truncate">{pendingResumeFile.name}</p>
+                      <p className="text-xs text-green-600">
+                        {(pendingResumeFile.size / 1024).toFixed(0)} KB — will be uploaded on save
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPendingResumeFile(null)}
+                      className="p-1 text-green-600 hover:text-green-800 hover:bg-green-100 rounded"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center gap-2 w-full p-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors group">
+                    <Upload className="h-8 w-8 text-gray-400 group-hover:text-primary transition-colors" />
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-gray-700 group-hover:text-primary">
+                        {pageMode === "edit" && selectedApplication?.resumeId
+                          ? "Click to replace resume"
+                          : "Click to attach resume"}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">PDF, DOC, DOCX — max 5 MB</p>
+                    </div>
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setPendingResumeFile(file);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+
+              <Separator />
+
               {/* Form Actions */}
               <div className="flex items-center justify-end gap-3">
                 <Button type="button" variant="outline" onClick={() => { setPageMode("list"); resetForm(); }}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={submitting}>
-                  {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  {pageMode === "create" ? "Create Application" : "Save Changes"}
+                <Button type="submit" disabled={submitting || formResumeUploading}>
+                  {(submitting || formResumeUploading) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {formResumeUploading
+                    ? "Uploading Resume..."
+                    : submitting
+                    ? "Saving..."
+                    : pageMode === "create"
+                    ? "Create Application"
+                    : "Save Changes"}
                 </Button>
               </div>
             </form>
@@ -1245,15 +1426,55 @@ export default function ApplicationsPage() {
                       Call
                     </a>
                   )}
-                  {app.resumeId && (
-                    <button
-                      onClick={() => handleViewResume(app.resumeId!)}
-                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
-                    >
-                      <FileText className="w-4 h-4" />
-                      View Resume
-                    </button>
-                  )}
+                  {/* Resume section */}
+                  <div className="space-y-2">
+                    {app.resumeId && (
+                      <button
+                        onClick={() => handleViewResume(app.resumeId!)}
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                      >
+                        <FileText className="w-4 h-4" />
+                        View Resume
+                        {app.resumeFileName && (
+                          <span className="text-xs text-muted-foreground truncate max-w-[100px]">({app.resumeFileName})</span>
+                        )}
+                      </button>
+                    )}
+                    <label className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2 border rounded-lg transition-colors text-sm font-medium cursor-pointer ${
+                      uploadingResume === app.id
+                        ? "opacity-50 cursor-not-allowed bg-gray-50 border-gray-200"
+                        : "border-dashed border-gray-300 hover:border-primary hover:bg-primary/5 text-muted-foreground hover:text-primary"
+                    }`}>
+                      {uploadingResume === app.id ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4" />
+                          {app.resumeId ? "Replace Resume" : "Upload Resume"}
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="hidden"
+                        disabled={uploadingResume === app.id}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleResumeUpload(app.id, file);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                    {resumeUploadError && uploadingResume === null && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {resumeUploadError}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

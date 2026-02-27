@@ -18,6 +18,10 @@ import {
   Eye,
   MoreHorizontal,
   Building2,
+  LayoutList,
+  AlignJustify,
+  Truck,
+  Calendar,
 } from "lucide-react";
 import { Job } from "@/lib/aws/dynamodb";
 
@@ -49,6 +53,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+
+type TableView = "compact" | "detailed";
 
 const statusConfig = {
   open: {
@@ -82,15 +88,20 @@ export default function JobsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [duplicating, setDuplicating] = useState<string | null>(null);
+  const [tableView, setTableView] = useState<TableView>("compact");
 
   const exportJobsToExcel = () => {
-    const headers = ["Job ID", "Title", "Client", "Location", "Status", "Created Date", "Deadline"];
+    const headers = ["Job ID", "Title", "Client", "Vendor", "Location", "Status", "Pay Rate", "Bill Rate", "Manager", "Created Date", "Deadline"];
     const rows = filteredJobs.map(job => [
       job.postingId || "",
       job.title,
       job.clientName || "",
+      (job as Job & { vendorName?: string }).vendorName || "",
       `${job.location}${job.state ? `, ${job.state}` : ""}`,
       job.status,
+      job.payRate ? `$${job.payRate}/hr` : "",
+      job.clientBillRate ? `$${job.clientBillRate}/hr` : "",
+      job.recruitmentManagerName || "",
       new Date(job.createdAt).toLocaleDateString(),
       job.submissionDueDate ? new Date(job.submissionDueDate).toLocaleDateString() : "N/A",
     ]);
@@ -126,11 +137,13 @@ export default function JobsPage() {
   };
 
   const filteredJobs = jobs.filter((job) => {
+    const jobWithVendor = job as Job & { vendorName?: string };
     const matchesSearch =
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.clientName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      jobWithVendor.vendorName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.postingId?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || job.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -164,15 +177,11 @@ export default function JobsPage() {
   const handleDuplicate = async (job: Job) => {
     setDuplicating(job.id);
     try {
-      const response = await fetch(`/api/jobs/${job.id}/duplicate`, {
-        method: "POST",
-      });
-
+      const response = await fetch(`/api/jobs/${job.id}/duplicate`, { method: "POST" });
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Failed to duplicate job");
       }
-
       await fetchJobs();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to duplicate job");
@@ -272,14 +281,14 @@ export default function JobsPage() {
         </Card>
       </div>
 
-      {/* Filters */}
+      {/* Filters + View Toggle */}
       <Card className="py-4">
         <CardContent className="px-4 py-0">
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search jobs..."
+                placeholder="Search by title, client, vendor, location..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -298,6 +307,34 @@ export default function JobsPage() {
                 <SelectItem value="draft">Draft</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* View Toggle – only visible on desktop where table shows */}
+            <div className="hidden lg:flex items-center border border-border rounded-md overflow-hidden">
+              <button
+                onClick={() => setTableView("compact")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors ${
+                  tableView === "compact"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+                title="Compact view"
+              >
+                <LayoutList className="h-4 w-4" />
+                Compact
+              </button>
+              <button
+                onClick={() => setTableView("detailed")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors border-l border-border ${
+                  tableView === "detailed"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+                title="Detailed view"
+              >
+                <AlignJustify className="h-4 w-4" />
+                Detailed
+              </button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -306,6 +343,7 @@ export default function JobsPage() {
       <div className="grid gap-3 lg:hidden">
         {filteredJobs.length > 0 ? (
           filteredJobs.map((job) => {
+            const jobWithVendor = job as Job & { vendorName?: string };
             const status = statusConfig[job.status as keyof typeof statusConfig] || statusConfig.draft;
             return (
               <Card key={job.id} className="py-4">
@@ -331,6 +369,12 @@ export default function JobsPage() {
                       <div className="flex items-center gap-2">
                         <Building2 className="h-3.5 w-3.5" />
                         <span>{job.clientName}</span>
+                      </div>
+                    )}
+                    {jobWithVendor.vendorName && (
+                      <div className="flex items-center gap-2">
+                        <Truck className="h-3.5 w-3.5" />
+                        <span>{jobWithVendor.vendorName}</span>
                       </div>
                     )}
                     <div className="flex items-center gap-2">
@@ -401,142 +445,289 @@ export default function JobsPage() {
       </div>
 
       {/* Desktop Table */}
-      <Card className="hidden lg:block py-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Job ID</TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead>Client</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Created Date</TableHead>
-              <TableHead>Deadline</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredJobs.map((job) => {
-              const status = statusConfig[job.status as keyof typeof statusConfig] || statusConfig.draft;
-              return (
-                <TableRow key={job.id}>
-                  <TableCell>
-                    <span className="font-mono text-sm text-primary font-medium">
-                      {job.postingId || "-"}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <button
-                        onClick={() => router.push(`/admin/jobs/${job.id}`)}
-                        className="font-medium text-foreground hover:text-primary transition-colors text-left"
-                      >
-                        {job.title}
-                      </button>
-                      <p className="text-xs text-muted-foreground capitalize">{job.type}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {job.clientName ? (
-                      <div className="flex items-center gap-1.5">
-                        <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="text-sm">{job.clientName}</span>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <MapPin className="h-3.5 w-3.5" />
-                      <span>{job.location}</span>
-                      {job.state && <span className="text-xs">({job.state})</span>}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Select value={job.status} onValueChange={(value) => handleStatusChange(job.id, value as Job["status"])}>
-                      <SelectTrigger className="h-7 w-[100px] text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white">
-                        <SelectItem value="open">Open</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="closed">Closed</SelectItem>
-                        <SelectItem value="on-hold">On Hold</SelectItem>
-                        <SelectItem value="draft">Draft</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm text-muted-foreground">
-                      {new Date(job.createdAt).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {job.submissionDueDate ? (
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(job.submissionDueDate).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon-sm">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-white">
-                        <DropdownMenuItem onClick={() => router.push(`/admin/jobs/${job.id}`)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push(`/admin/jobs/${job.id}/edit`)}>
-                          <Edit3 className="h-4 w-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDuplicate(job)} disabled={duplicating === job.id}>
-                          {duplicating === job.id ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <Copy className="h-4 w-4 mr-2" />
-                          )}
-                          Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setShowDeleteConfirm(job.id)} variant="destructive">
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+      <div className="hidden lg:block">
+        {/* ── COMPACT VIEW ── */}
+        {tableView === "compact" && (
+          <Card className="py-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Job ID</TableHead>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-
-        {filteredJobs.length === 0 && (
-          <div className="text-center py-12">
-            <Briefcase className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
-            <p className="text-muted-foreground text-sm mb-4">No jobs found</p>
-            <Button onClick={() => router.push("/admin/jobs/new")}>
-              Create your first job
-            </Button>
-          </div>
+              </TableHeader>
+              <TableBody>
+                {filteredJobs.map((job) => {
+                  const status = statusConfig[job.status as keyof typeof statusConfig] || statusConfig.draft;
+                  return (
+                    <TableRow key={job.id}>
+                      <TableCell>
+                        <span className="font-mono text-sm text-primary font-medium">
+                          {job.postingId || "-"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <button
+                            onClick={() => router.push(`/admin/jobs/${job.id}`)}
+                            className="font-medium text-foreground hover:text-primary transition-colors text-left"
+                          >
+                            {job.title}
+                          </button>
+                          <p className="text-xs text-muted-foreground capitalize">{job.type}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {job.clientName ? (
+                          <div className="flex items-center gap-1.5">
+                            <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="text-sm">{job.clientName}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <MapPin className="h-3.5 w-3.5" />
+                          <span className="text-sm">{job.location}{job.state ? `, ${job.state}` : ""}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={status.className}>{status.label}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(job.createdAt).toLocaleDateString("en-US", {
+                            month: "short", day: "numeric", year: "numeric",
+                          })}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon-sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-white">
+                            <DropdownMenuItem onClick={() => router.push(`/admin/jobs/${job.id}`)}>
+                              <Eye className="h-4 w-4 mr-2" />View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => router.push(`/admin/jobs/${job.id}/edit`)}>
+                              <Edit3 className="h-4 w-4 mr-2" />Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDuplicate(job)} disabled={duplicating === job.id}>
+                              {duplicating === job.id ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Copy className="h-4 w-4 mr-2" />}
+                              Duplicate
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => setShowDeleteConfirm(job.id)} variant="destructive">
+                              <Trash2 className="h-4 w-4 mr-2" />Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            {filteredJobs.length === 0 && (
+              <div className="text-center py-12">
+                <Briefcase className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm mb-4">No jobs found</p>
+                <Button onClick={() => router.push("/admin/jobs/new")}>Create your first job</Button>
+              </div>
+            )}
+          </Card>
         )}
-      </Card>
+
+        {/* ── DETAILED VIEW ── */}
+        {tableView === "detailed" && (
+          <Card className="py-0 overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table className="min-w-[1200px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[100px]">Job ID</TableHead>
+                    <TableHead className="w-[200px]">Title</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Vendor</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Pay Rate</TableHead>
+                    <TableHead>Bill Rate</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Manager</TableHead>
+                    <TableHead>Applicants</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Deadline</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredJobs.map((job) => {
+                    const jobWithVendor = job as Job & { vendorName?: string };
+                    const status = statusConfig[job.status as keyof typeof statusConfig] || statusConfig.draft;
+                    return (
+                      <TableRow key={job.id}>
+                        <TableCell>
+                          <span className="font-mono text-xs text-primary font-medium">
+                            {job.postingId || "-"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <button
+                              onClick={() => router.push(`/admin/jobs/${job.id}`)}
+                              className="font-medium text-foreground hover:text-primary transition-colors text-left text-sm"
+                            >
+                              {job.title}
+                            </button>
+                            <p className="text-xs text-muted-foreground capitalize">{job.type}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {job.clientName ? (
+                            <div className="flex items-center gap-1.5">
+                              <Building2 className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <span className="text-sm">{job.clientName}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {jobWithVendor.vendorName ? (
+                            <div className="flex items-center gap-1.5">
+                              <Truck className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <span className="text-sm">{jobWithVendor.vendorName}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                            <span className="text-sm">{job.location}{job.state ? `, ${job.state}` : ""}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {job.payRate ? (
+                            <span className="text-sm font-medium">${job.payRate}/hr</span>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {job.clientBillRate ? (
+                            <span className="text-sm font-medium">${job.clientBillRate}/hr</span>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Select value={job.status} onValueChange={(value) => handleStatusChange(job.id, value as Job["status"])}>
+                            <SelectTrigger className="h-7 w-[110px] text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white">
+                              <SelectItem value="open">Open</SelectItem>
+                              <SelectItem value="active">Active</SelectItem>
+                              <SelectItem value="closed">Closed</SelectItem>
+                              <SelectItem value="on-hold">On Hold</SelectItem>
+                              <SelectItem value="draft">Draft</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          {job.recruitmentManagerName ? (
+                            <div className="flex items-center gap-1.5">
+                              <Avatar className="h-6 w-6">
+                                <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                                  {job.recruitmentManagerName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-xs text-muted-foreground">{job.recruitmentManagerName}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Users className="h-3.5 w-3.5" />
+                            <span className="text-sm">{job.applicationsCount || 0}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(job.createdAt).toLocaleDateString("en-US", {
+                              month: "short", day: "numeric", year: "numeric",
+                            })}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {job.submissionDueDate ? (
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Calendar className="h-3.5 w-3.5" />
+                              <span className="text-xs">
+                                {new Date(job.submissionDueDate).toLocaleDateString("en-US", {
+                                  month: "short", day: "numeric", year: "numeric",
+                                })}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon-sm">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-white">
+                              <DropdownMenuItem onClick={() => router.push(`/admin/jobs/${job.id}`)}>
+                                <Eye className="h-4 w-4 mr-2" />View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => router.push(`/admin/jobs/${job.id}/edit`)}>
+                                <Edit3 className="h-4 w-4 mr-2" />Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDuplicate(job)} disabled={duplicating === job.id}>
+                                {duplicating === job.id ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Copy className="h-4 w-4 mr-2" />}
+                                Duplicate
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => setShowDeleteConfirm(job.id)} variant="destructive">
+                                <Trash2 className="h-4 w-4 mr-2" />Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              {filteredJobs.length === 0 && (
+                <div className="text-center py-12">
+                  <Briefcase className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+                  <p className="text-muted-foreground text-sm mb-4">No jobs found</p>
+                  <Button onClick={() => router.push("/admin/jobs/new")}>Create your first job</Button>
+                </div>
+              )}
+            </div>
+          </Card>
+        )}
+      </div>
 
       {/* Delete Confirmation */}
       {showDeleteConfirm && (

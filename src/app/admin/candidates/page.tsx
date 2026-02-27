@@ -36,6 +36,7 @@ import {
   Plus,
 } from "lucide-react";
 import { Application, Job } from "@/lib/aws/dynamodb";
+import { useAuth } from "@/lib/auth/AuthContext";
 
 interface CandidateWithJob extends Application {
   jobTitle?: string;
@@ -75,6 +76,7 @@ type ViewMode = "list" | "cards" | "kanban";
 
 export default function CandidatesPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [candidates, setCandidates] = useState<CandidateWithJob[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,6 +89,26 @@ export default function CandidatesPage() {
   const [noteText, setNoteText] = useState("");
   const [draggedCandidate, setDraggedCandidate] = useState<CandidateWithJob | null>(null);
   const [activityLog, setActivityLog] = useState<Record<string, ActivityItem[]>>({});
+  const [showNewCandidateModal, setShowNewCandidateModal] = useState(false);
+  const [creatingCandidate, setCreatingCandidate] = useState(false);
+  const [newCandidateForm, setNewCandidateForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    address: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    skills: "",
+    experience: "",
+    workAuthorization: "" as "" | "US Citizen" | "Green Card" | "H1-B" | "OPT/CPT" | "TN Visa" | "Other",
+    source: "Other" as "LinkedIn" | "Indeed" | "Company Website" | "Referral" | "Agency" | "Career Portal" | "Other",
+    notes: "",
+    jobId: "",
+    addToTalentBench: true,
+    status: "pending" as Application["status"],
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -100,7 +122,8 @@ export default function CandidatesPage() {
         const appsData = await appsRes.json();
         const jobsData = await jobsRes.json();
 
-        setJobs(jobsData.jobs || []);
+        const fetchedJobs = jobsData.jobs || [];
+        setJobs(fetchedJobs);
 
         const jobsMap = new Map<string, Job>(
           (jobsData.jobs || []).map((job: Job) => [job.id, job])
@@ -288,6 +311,71 @@ export default function CandidatesPage() {
     }
   };
 
+  const handleCreateCandidate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreatingCandidate(true);
+    try {
+      const selectedJob = jobs.find((j) => j.id === newCandidateForm.jobId);
+      const payload = {
+        firstName: newCandidateForm.firstName,
+        lastName: newCandidateForm.lastName,
+        name: `${newCandidateForm.firstName} ${newCandidateForm.lastName}`.trim(),
+        email: newCandidateForm.email,
+        phone: newCandidateForm.phone || undefined,
+        address: newCandidateForm.address || undefined,
+        city: newCandidateForm.city || undefined,
+        state: newCandidateForm.state || undefined,
+        zipCode: newCandidateForm.zipCode || undefined,
+        skills: newCandidateForm.skills ? newCandidateForm.skills.split(",").map((s) => s.trim()).filter(Boolean) : undefined,
+        experience: newCandidateForm.experience || undefined,
+        workAuthorization: newCandidateForm.workAuthorization || undefined,
+        source: newCandidateForm.source,
+        notes: newCandidateForm.notes || undefined,
+        jobId: newCandidateForm.jobId || undefined,
+        jobTitle: selectedJob?.title || undefined,
+        status: newCandidateForm.status,
+        addToTalentBench: newCandidateForm.addToTalentBench,
+        createdBy: user?.id,
+        createdByName: user?.name || user?.email,
+        userId: "manual-entry",
+      };
+
+      const response = await fetch("/api/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to create candidate");
+      }
+
+      const data = await response.json();
+      const job = newCandidateForm.jobId ? jobs.find((j) => j.id === newCandidateForm.jobId) : undefined;
+      const newCandidate: CandidateWithJob = {
+        ...data.application,
+        jobTitle: job?.title || "No Position",
+        jobDepartment: job?.department || "",
+        jobLocation: job?.location || "",
+      };
+      setCandidates((prev) => [newCandidate, ...prev]);
+
+      // Reset form
+      setNewCandidateForm({
+        firstName: "", lastName: "", email: "", phone: "", address: "", city: "",
+        state: "", zipCode: "", skills: "", experience: "",
+        workAuthorization: "", source: "Other", notes: "", jobId: "",
+        addToTalentBench: true, status: "pending",
+      });
+      setShowNewCandidateModal(false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to create candidate");
+    } finally {
+      setCreatingCandidate(false);
+    }
+  };
+
   const formatTimeAgo = (dateStr: string) => {
     const date = new Date(dateStr);
     const now = new Date();
@@ -394,6 +482,13 @@ export default function CandidatesPage() {
           >
             <Download className="w-4 h-4" />
             Export
+          </button>
+          <button
+            onClick={() => setShowNewCandidateModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            New Candidate
           </button>
           <button
             onClick={() => router.push("/admin/candidate-applications/new")}
@@ -922,6 +1017,274 @@ export default function CandidatesPage() {
           <p className="text-slate-500">
             {candidates.length === 0 ? "No candidates yet" : "No candidates match your filters"}
           </p>
+          {candidates.length === 0 && (
+            <button
+              onClick={() => setShowNewCandidateModal(true)}
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Add First Candidate
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* New Candidate Modal */}
+      {showNewCandidateModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">New Candidate</h2>
+                <p className="text-sm text-slate-500">Manually add a candidate to the talent pipeline</p>
+              </div>
+              <button
+                onClick={() => setShowNewCandidateModal(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              <form id="new-candidate-form" onSubmit={handleCreateCandidate} className="p-6 space-y-5">
+                {/* Name */}
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Personal Information</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">First Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={newCandidateForm.firstName}
+                        onChange={(e) => setNewCandidateForm({ ...newCandidateForm, firstName: e.target.value })}
+                        placeholder="John"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Last Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={newCandidateForm.lastName}
+                        onChange={(e) => setNewCandidateForm({ ...newCandidateForm, lastName: e.target.value })}
+                        placeholder="Smith"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Email *</label>
+                    <input
+                      type="email"
+                      required
+                      value={newCandidateForm.email}
+                      onChange={(e) => setNewCandidateForm({ ...newCandidateForm, email: e.target.value })}
+                      placeholder="john@example.com"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+                    <input
+                      type="tel"
+                      value={newCandidateForm.phone}
+                      onChange={(e) => setNewCandidateForm({ ...newCandidateForm, phone: e.target.value })}
+                      placeholder="+1 (555) 000-0000"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Location */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">City</label>
+                    <input
+                      type="text"
+                      value={newCandidateForm.city}
+                      onChange={(e) => setNewCandidateForm({ ...newCandidateForm, city: e.target.value })}
+                      placeholder="Columbus"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">State</label>
+                    <input
+                      type="text"
+                      value={newCandidateForm.state}
+                      onChange={(e) => setNewCandidateForm({ ...newCandidateForm, state: e.target.value })}
+                      placeholder="OH"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Zip Code</label>
+                    <input
+                      type="text"
+                      value={newCandidateForm.zipCode}
+                      onChange={(e) => setNewCandidateForm({ ...newCandidateForm, zipCode: e.target.value })}
+                      placeholder="43065"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Professional */}
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Professional Details</p>
+                  <div className="grid grid-cols-2 gap-4 mb-3">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Work Authorization</label>
+                      <select
+                        value={newCandidateForm.workAuthorization}
+                        onChange={(e) => setNewCandidateForm({ ...newCandidateForm, workAuthorization: e.target.value as typeof newCandidateForm.workAuthorization })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none bg-white text-sm"
+                      >
+                        <option value="">Not specified</option>
+                        <option value="US Citizen">US Citizen</option>
+                        <option value="Green Card">Green Card</option>
+                        <option value="H1-B">H1-B</option>
+                        <option value="OPT/CPT">OPT/CPT</option>
+                        <option value="TN Visa">TN Visa</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Source</label>
+                      <select
+                        value={newCandidateForm.source}
+                        onChange={(e) => setNewCandidateForm({ ...newCandidateForm, source: e.target.value as typeof newCandidateForm.source })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none bg-white text-sm"
+                      >
+                        <option value="LinkedIn">LinkedIn</option>
+                        <option value="Indeed">Indeed</option>
+                        <option value="Company Website">Company Website</option>
+                        <option value="Referral">Referral</option>
+                        <option value="Agency">Agency</option>
+                        <option value="Career Portal">Career Portal</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Skills</label>
+                    <input
+                      type="text"
+                      value={newCandidateForm.skills}
+                      onChange={(e) => setNewCandidateForm({ ...newCandidateForm, skills: e.target.value })}
+                      placeholder="React, Node.js, AWS (comma separated)"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Experience Summary</label>
+                    <textarea
+                      value={newCandidateForm.experience}
+                      onChange={(e) => setNewCandidateForm({ ...newCandidateForm, experience: e.target.value })}
+                      rows={2}
+                      placeholder="Brief experience summary..."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none resize-none text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Job & Pipeline */}
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Pipeline & Assignment</p>
+                  <div className="grid grid-cols-2 gap-4 mb-3">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Link to Job Posting</label>
+                      <select
+                        value={newCandidateForm.jobId}
+                        onChange={(e) => setNewCandidateForm({ ...newCandidateForm, jobId: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none bg-white text-sm"
+                      >
+                        <option value="">No specific job</option>
+                        {jobs.filter((j) => j.status === "open" || j.status === "active").map((j) => (
+                          <option key={j.id} value={j.id}>{j.title}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Initial Stage</label>
+                      <select
+                        value={newCandidateForm.status}
+                        onChange={(e) => setNewCandidateForm({ ...newCandidateForm, status: e.target.value as Application["status"] })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none bg-white text-sm"
+                      >
+                        {pipelineStages.map((stage) => (
+                          <option key={stage.id} value={stage.id}>{stage.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Internal Notes</label>
+                    <textarea
+                      value={newCandidateForm.notes}
+                      onChange={(e) => setNewCandidateForm({ ...newCandidateForm, notes: e.target.value })}
+                      rows={2}
+                      placeholder="Internal notes about this candidate..."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none resize-none text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Talent Bench */}
+                <div className="flex items-center gap-3 p-3 bg-cyan-50 rounded-lg border border-cyan-100">
+                  <input
+                    type="checkbox"
+                    id="addToTalentBench"
+                    checked={newCandidateForm.addToTalentBench}
+                    onChange={(e) => setNewCandidateForm({ ...newCandidateForm, addToTalentBench: e.target.checked })}
+                    className="w-4 h-4 accent-cyan-600"
+                  />
+                  <label htmlFor="addToTalentBench" className="text-sm font-medium text-cyan-800 cursor-pointer">
+                    Add to Talent Bench
+                    <span className="block text-xs text-cyan-600 font-normal">This candidate will also appear in the talent bench for future opportunities</span>
+                  </label>
+                </div>
+              </form>
+            </div>
+
+            <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowNewCandidateModal(false)}
+                className="px-4 py-2 border border-slate-300 rounded-lg text-sm hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="new-candidate-form"
+                disabled={creatingCandidate}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors disabled:opacity-50 text-sm"
+              >
+                {creatingCandidate ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4" />
+                    Create Candidate
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
