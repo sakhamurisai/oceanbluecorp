@@ -307,7 +307,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             <Link href="/admin" className="flex items-center gap-2">
               {sidebarCollapsed ? (
                 <div className="w-8 h-8 flex items-center justify-center">
-                  <img src="/logo.ico" alt="Logo" className="w-8 h-8" />
+                  <Image src="/logo.ico" alt="Logo" width={32} height={32} className="w-8 h-8" />
                 </div>
               ) : (
                 <Image
@@ -425,16 +425,29 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
             {/* User dropdown menu */}
             {userMenuOpen && !sidebarCollapsed && (
-              <div className="mt-1.5 py-1 rounded-lg bg-white border border-gray-200 shadow-lg">
-                <p className="px-3 py-1.5 text-xs text-gray-500 truncate">{user?.email}</p>
-                <div className="my-1 border-t border-gray-100" />
-                <button
-                  onClick={signOut}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  Sign Out
-                </button>
+              <div className="mt-2 py-1.5 rounded-xl bg-white border border-gray-200 shadow-xl ring-1 ring-black/5">
+                <div className="px-3 py-2 border-b border-gray-100">
+                  <p className="text-xs font-medium text-gray-900 truncate">{user?.name}</p>
+                  <p className="text-xs text-gray-500 truncate mt-0.5">{user?.email}</p>
+                </div>
+                <div className="py-1">
+                  <Link
+                    href="/admin/settings"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <Settings className="w-3.5 h-3.5" />
+                    Settings
+                  </Link>
+                </div>
+                <div className="border-t border-gray-100 pt-1">
+                  <button
+                    onClick={signOut}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    Sign Out
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -485,25 +498,28 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
               {/* Search Results Dropdown */}
               {searchOpen && searchResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-lg border border-gray-200 shadow-lg overflow-hidden z-50">
-                  <div className="max-h-72 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-xl ring-1 ring-black/5 overflow-hidden z-50">
+                  <div className="bg-gray-50 px-3 py-2 border-b border-gray-100">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Search Results</p>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto bg-white">
                     {searchResults.map((result) => {
                       const Icon = result.type === "job" ? Briefcase : result.type === "application" ? Users : MessageSquare;
                       return (
                         <button
                           key={`${result.type}-${result.id}`}
                           onClick={() => handleSearchResultClick(result)}
-                          className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 transition-colors text-left"
+                          className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-blue-50 transition-colors text-left border-b border-gray-50 last:border-0"
                         >
-                          <div className={`w-7 h-7 rounded-md flex items-center justify-center ${
-                            result.type === "job" ? "bg-blue-50 text-blue-600" :
-                            result.type === "application" ? "bg-emerald-50 text-emerald-600" :
-                            "bg-violet-50 text-violet-600"
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm ${
+                            result.type === "job" ? "bg-blue-100 text-blue-600" :
+                            result.type === "application" ? "bg-emerald-100 text-emerald-600" :
+                            "bg-violet-100 text-violet-600"
                           }`}>
-                            <Icon className="w-3.5 h-3.5" />
+                            <Icon className="w-4 h-4" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-800 truncate">{result.title}</p>
+                            <p className="text-sm font-medium text-gray-900 truncate">{result.title}</p>
                             <p className="text-xs text-gray-500 truncate">{result.subtitle}</p>
                           </div>
                         </button>
@@ -515,8 +531,12 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
               {/* No results */}
               {searchOpen && searchQuery.length >= 2 && searchResults.length === 0 && !searchLoading && (
-                <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-lg border border-gray-200 shadow-lg p-3 z-50">
-                  <p className="text-sm text-gray-500 text-center">No results found</p>
+                <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-xl ring-1 ring-black/5 p-4 z-50">
+                  <div className="text-center">
+                    <Search className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-gray-600">No results found</p>
+                    <p className="text-xs text-gray-400 mt-1">Try a different search term</p>
+                  </div>
                 </div>
               )}
             </div>
@@ -542,14 +562,19 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
               {/* Notifications Dropdown */}
               {notificationsOpen && (
-                <div className="absolute top-full right-0 mt-1.5 w-72 sm:w-80 bg-white rounded-lg border border-gray-200 shadow-lg overflow-hidden z-50">
+                <div className="absolute top-full right-0 mt-1.5 w-80 sm:w-96 bg-white rounded-xl border border-gray-200 shadow-xl ring-1 ring-black/5 overflow-hidden z-50">
                   {/* Header */}
-                  <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100">
-                    <h3 className="font-semibold text-gray-800 text-sm">Notifications</h3>
+                  <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 text-sm">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <p className="text-xs text-gray-500 mt-0.5">{unreadCount} unread</p>
+                      )}
+                    </div>
                     {unreadCount > 0 && (
                       <button
                         onClick={markAllAsRead}
-                        className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                        className="text-xs text-blue-600 hover:text-blue-700 font-medium px-2 py-1 rounded-md hover:bg-blue-50 transition-colors"
                       >
                         Mark all read
                       </button>
@@ -557,15 +582,18 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                   </div>
 
                   {/* Notifications List */}
-                  <div className="max-h-80 overflow-y-auto">
+                  <div className="max-h-96 overflow-y-auto bg-white">
                     {loadingNotifications && notifications.length === 0 ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                      <div className="flex items-center justify-center py-12 bg-white">
+                        <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
                       </div>
                     ) : notifications.length === 0 ? (
-                      <div className="py-8 text-center">
-                        <Bell className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                        <p className="text-sm text-gray-500">No notifications</p>
+                      <div className="py-12 text-center bg-white">
+                        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                          <Bell className="w-6 h-6 text-gray-400" />
+                        </div>
+                        <p className="text-sm font-medium text-gray-600">No notifications</p>
+                        <p className="text-xs text-gray-400 mt-1">You&apos;re all caught up!</p>
                       </div>
                     ) : (
                       notifications.slice(0, 10).map((notification) => {
@@ -575,30 +603,43 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                           <button
                             key={notification.id}
                             onClick={() => handleNotificationClick(notification)}
-                            className={`w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-50 transition-colors text-left border-b border-gray-50 last:border-0 ${
-                              !notification.isRead ? "bg-blue-50/40" : ""
+                            className={`w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left border-b border-gray-100 last:border-0 ${
+                              !notification.isRead ? "bg-blue-50/50" : "bg-white"
                             }`}
                           >
-                            <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${colorClass}`}>
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm ${colorClass}`}>
                               <Icon className="w-4 h-4" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
-                                <p className={`text-sm truncate ${!notification.isRead ? "font-semibold text-gray-800" : "text-gray-700"}`}>
+                                <p className={`text-sm leading-tight ${!notification.isRead ? "font-semibold text-gray-900" : "font-medium text-gray-700"}`}>
                                   {notification.title}
                                 </p>
                                 {!notification.isRead && (
-                                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0 mt-1.5" />
+                                  <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-1 ring-2 ring-blue-500/20" />
                                 )}
                               </div>
-                              <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{notification.message}</p>
-                              <p className="text-[10px] text-gray-400 mt-1">{formatTimeAgo(notification.createdAt)}</p>
+                              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{notification.message}</p>
+                              <p className="text-[10px] text-gray-400 mt-1.5 font-medium">{formatTimeAgo(notification.createdAt)}</p>
                             </div>
                           </button>
                         );
                       })
                     )}
                   </div>
+
+                  {/* Footer */}
+                  {notifications.length > 0 && (
+                    <div className="px-4 py-2.5 bg-gray-50 border-t border-gray-100">
+                      <Link
+                        href="/admin/notifications"
+                        className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center justify-center gap-1"
+                      >
+                        View all notifications
+                        <ChevronRight className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

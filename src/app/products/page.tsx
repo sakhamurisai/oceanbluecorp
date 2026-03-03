@@ -17,12 +17,6 @@ const products = [
   },
   {
     id: "product-2",
-    name: "CMHIndia",
-    logo: "https://www.cmhindia.com/logo.svg",
-    link: "https://www.cmhindia.com/",
-  },
-  {
-    id: "product-3",
     name: "Inytes",
     logo: "https://cdn.inytes.com/images/brand/inytes-logo.png",
     link: "https://www.inytes.com/",

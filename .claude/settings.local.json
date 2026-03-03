@@ -11,7 +11,9 @@
       "Bash(npx shadcn@latest add:*)",
       "Bash(git checkout:*)",
       "WebFetch(domain:dribbble.com)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm i:*)",
+      "Bash(del \"C:\\\\Users\\\\gagan\\\\Desktop\\\\oceanbluecorp\\\\src\\\\components\\\\ScrollStack.tsx\")"
     ]
   }
 }

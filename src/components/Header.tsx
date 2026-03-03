@@ -132,7 +132,6 @@ const navigation = [
   { name: "About", href: "/about", hasDropdown: true, dropdownType: "about" },
   { name: "Products", href:"/products"},
   { name: "Services", href: "/services", hasDropdown: true, dropdownType: "services" },
-  { name: "Resources", href: "/resources", hasDropdown: true, dropdownType: "resources" },
   { name: "Careers", href: "/careers" },
   { name: "Contact", href: "/contact" },
 ];
@@ -207,14 +206,21 @@ export default function Header() {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-[9999] transition-all duration-300 ${
+        className={`fixed z-[9999] transition-all duration-500 ease-out ${
           scrolled
-            ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200"
-            : "bg-white shadow-sm"
+            ? "top-4 left-1/2 -translate-x-1/2 w-[95%] max-w-6xl"
+            : "top-4 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl"
         }`}
       >
-        <nav className="container mx-auto px-4 sm:px-6 lg:px-8" aria-label="Global">
-          <div className="flex items-center justify-between h-16 md:h-20">
+        <nav
+          className={`relative mx-auto transition-all duration-500 ease-out ${
+            scrolled
+              ? "bg-white/95 backdrop-blur-xl shadow-lg shadow-gray-900/5 border border-gray-200/50 rounded-full px-3 sm:px-4 lg:px-6"
+              : "bg-white/90 backdrop-blur-md shadow-md shadow-gray-900/5 border border-gray-100 rounded-full px-4 sm:px-6 lg:px-8"
+          }`}
+          aria-label="Global"
+        >
+          <div className="flex items-center justify-between h-14 md:h-16">
             {/* Logo - Always visible with proper contrast */}
             <Link href="/" className="flex items-center">
               <Image
@@ -395,7 +401,7 @@ export default function Header() {
                     </Link>
                     <Link
                       href="/auth/signup"
-                      className="px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 transition-all shadow-sm"
+                      className="px-4 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 transition-all shadow-sm hover:shadow-md"
                     >
                       Sign Up
                     </Link>
@@ -425,22 +431,24 @@ export default function Header() {
             <>
               {/* Backdrop */}
               <div
-                className="lg:hidden fixed inset-0 top-16 md:top-20 bg-black/20 z-[9999]"
+                className="lg:hidden fixed inset-0 top-0 bg-black/20 backdrop-blur-sm z-[9998]"
                 onClick={() => {
                   setMobileMenuOpen(false);
                   setMobileDropdown(null);
                 }}
               />
               {/* Menu Panel */}
-              <div className="lg:hidden fixed top-16 md:top-20 right-0 bottom-0 w-full sm:w-96 bg-white z-[9999] overflow-y-auto shadow-xl">
-                <div className="px-4 sm:px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
+              <div className="lg:hidden fixed top-20 md:top-24 left-4 right-4 sm:left-auto sm:right-4 sm:w-96 bg-white z-[9999] overflow-y-auto shadow-2xl rounded-3xl border border-gray-100 max-h-[calc(100vh-6rem)]">
+                <div className="px-4 sm:px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10 rounded-t-3xl">
+                  <span className="text-sm font-medium text-gray-900">Menu</span>
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);
                       setMobileDropdown(null);
                     }}
-                    className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                    className="p-2 rounded-full hover:bg-gray-100 transition-colors"
                   >
+                    <X className="w-5 h-5 text-gray-500" />
                   </button>
                 </div>
                 <div className="px-4 sm:px-6 py-6">
@@ -566,7 +574,7 @@ export default function Header() {
                         </Link>
                         <Link
                           href="/auth/signup"
-                          className="block w-full px-4 py-3 text-center text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-colors"
+                          className="block w-full px-4 py-3 text-center text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl hover:from-orange-600 hover:to-amber-600 transition-colors"
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Create Account
@@ -580,9 +588,6 @@ export default function Header() {
           )}
         </nav>
       </header>
-
-      {/* Spacer to prevent content from hiding under fixed header */}
-      <div className="h-16 md:h-20" />
     </>
   );
 }
