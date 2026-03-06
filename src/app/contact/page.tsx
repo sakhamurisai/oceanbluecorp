@@ -450,12 +450,12 @@ export default function ContactPage() {
                     {
                       icon: Globe,
                       title: "Global Delivery",
-                      description: "Offices in 25+ locations for local support",
+                      description: "Offices in 4 locations for local support",
                     },
                     {
                       icon: Building2,
                       title: "Enterprise Experience",
-                      description: "500+ successful enterprise implementations",
+                      description: "10+ Industry Experience",
                     },
                     {
                       icon: MessageSquare,
