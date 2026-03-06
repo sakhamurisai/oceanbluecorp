@@ -436,7 +436,7 @@ export default function ContactPage() {
               <div>
                 <h2 className="heading-md mb-4">Why Partner With Us?</h2>
                 <p className="text-muted-foreground mb-6">
-                  Join 500+ enterprises that trust Ocean Blue Corporation for their
+                  Join the enterprises that trust Ocean Blue Corporation for their
                   digital transformation journey.
                 </p>
 
