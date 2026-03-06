@@ -883,7 +883,7 @@ function UserDashboard() {
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center gap-2">
               <Image
-                src="https://oceanbluecorp.com/images/logo.png"
+                src="/logo.png"
                 alt="Ocean Blue Corporation"
                 width={140}
                 height={40}
