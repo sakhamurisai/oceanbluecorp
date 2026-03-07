@@ -27,6 +27,10 @@ export default function SignOutPage() {
     try {
       const userManager = getUserManager();
 
+      // Get the current user before removing them (to get the id_token)
+      const user = await userManager.getUser();
+      const idToken = user?.id_token;
+
       // Remove user from local storage
       await userManager.removeUser();
 
@@ -46,23 +50,24 @@ export default function SignOutPage() {
       }
       keysToRemove.forEach((key) => localStorage.removeItem(key));
 
-      // For localhost, skip Cognito logout (it requires logout_uri to be registered in Cognito)
-      // Just redirect to home after clearing local session
-      const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-
-      if (isLocalhost) {
-        router.push("/");
-        return;
-      }
-
       // For production, redirect to Cognito logout endpoint
       const cognitoDomain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN;
       const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID;
-      const logoutUri = encodeURIComponent(window.location.origin);
+      
+      // IMPORTANT: This must match EXACTLY what's registered in Cognito
+      // You registered: https://oceanbluecorp.com/auth/signout
+      const logoutUri = encodeURIComponent("https://oceanbluecorp.com/auth/signout");
 
       if (cognitoDomain && clientId) {
+        let logoutUrl = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${logoutUri}`;
+        
+        // Add id_token_hint if available for a cleaner logout
+        if (idToken) {
+          logoutUrl += `&id_token_hint=${encodeURIComponent(idToken)}`;
+        }
+        
         // Redirect to Cognito hosted UI logout
-        window.location.href = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${logoutUri}`;
+        window.location.href = logoutUrl;
       } else {
         // If Cognito domain is not configured, just redirect to home
         router.push("/");
@@ -138,10 +143,6 @@ export default function SignOutPage() {
             </div>
           )}
 
-          {/* Additional Info */}
-          <p className="mt-8 text-xs text-gray-400">
-            You will be redirected to the home page after signing out.
-          </p>
         </div>
       </div>
     </div>

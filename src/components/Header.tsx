@@ -33,56 +33,48 @@ const services = [
     href: "/services#erp",
     icon: BarChart3,
     description: "SAP & Oracle Implementation",
-    gradient: "from-blue-600 to-indigo-600",
   },
   {
     name: "Cloud Services",
     href: "/services#cloud",
     icon: Cloud,
     description: "Cloud Migration & Management",
-    gradient: "from-cyan-600 to-blue-600",
   },
   {
     name: "AI & Analytics",
     href: "/services#ai",
     icon: Cpu,
     description: "AI & Machine Learning",
-    gradient: "from-violet-600 to-purple-600",
   },
   {
     name: "Salesforce",
     href: "/services#salesforce",
     icon: Database,
     description: "CRM Implementation",
-    gradient: "from-sky-600 to-blue-600",
   },
   {
     name: "Staffing",
     href: "/services#staffing",
     icon: Users,
     description: "IT Talent Acquisition",
-    gradient: "from-teal-600 to-cyan-600",
   },
   {
     name: "Training",
     href: "/services#training",
     icon: GraduationCap,
     description: "Corporate Programs",
-    gradient: "from-amber-600 to-orange-600",
   },
   {
     name: "Managed Services",
     href: "/services#managed",
     icon: Settings,
     description: "IT Management & Support",
-    gradient: "from-rose-600 to-pink-600",
   },
   {
     name: "Outsourcing",
     href: "/services#outsourcing",
     icon: Headphones,
     description: "Business Process Outsourcing",
-    gradient: "from-indigo-600 to-blue-600",
   },
 ];
 
@@ -92,21 +84,18 @@ const resources = [
     href: "/resources/ebook",
     icon: BookOpen,
     description: "Free guides & whitepapers",
-    gradient: "from-emerald-600 to-teal-600",
   },
   {
     name: "Blog",
     href: "/resources/blog",
     icon: FileText,
     description: "Latest insights & articles",
-    gradient: "from-orange-600 to-amber-600",
   },
   {
     name: "Case Studies",
     href: "/resources/case-studies",
     icon: Briefcase,
     description: "Success stories & results",
-    gradient: "from-purple-600 to-pink-600",
   },
 ];
 
@@ -116,14 +105,12 @@ const aboutItems = [
     href: "/about",
     icon: Users,
     description: "Learn about our company",
-    gradient: "from-blue-600 to-cyan-600",
   },
   {
     name: "Our Process",
     href: "/about#process",
     icon: Settings,
     description: "How we deliver results",
-    gradient: "from-indigo-600 to-purple-600",
   },
 ];
 
@@ -275,8 +262,8 @@ export default function Header() {
                                 href={dropItem.href}
                                 className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-all group"
                               >
-                                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${dropItem.gradient} flex items-center justify-center shadow-sm group-hover:shadow transition-shadow flex-shrink-0`}>
-                                  <dropItem.icon className="w-5 h-5 text-white" />
+                                <div className={`w-10 h-10 flex items-center rounded justify-center shadow-sm group-hover:shadow transition-shadow flex-shrink-0`}>
+                                  <dropItem.icon className="w-5 h-5" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="font-medium text-gray-900 group-hover:text-gray-900 transition-colors text-sm">
@@ -286,7 +273,7 @@ export default function Header() {
                                     {dropItem.description}
                                   </p>
                                 </div>
-                                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                               
                               </Link>
                             ))}
                             
@@ -431,7 +418,7 @@ export default function Header() {
             <>
               {/* Backdrop */}
               <div
-                className="lg:hidden fixed inset-0 top-0 bg-black/20 backdrop-blur-sm z-[9998]"
+                className="lg:hidden fixed inset-0 top-0 z-[9998]"
                 onClick={() => {
                   setMobileMenuOpen(false);
                   setMobileDropdown(null);
@@ -439,18 +426,6 @@ export default function Header() {
               />
               {/* Menu Panel */}
               <div className="lg:hidden fixed top-20 md:top-24 left-4 right-4 sm:left-auto sm:right-4 sm:w-96 bg-white z-[9999] overflow-y-auto shadow-2xl rounded-3xl border border-gray-100 max-h-[calc(100vh-6rem)]">
-                <div className="px-4 sm:px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10 rounded-t-3xl">
-                  <span className="text-sm font-medium text-gray-900">Menu</span>
-                  <button
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      setMobileDropdown(null);
-                    }}
-                    className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-                  >
-                    <X className="w-5 h-5 text-gray-500" />
-                  </button>
-                </div>
                 <div className="px-4 sm:px-6 py-6">
                   <div className="space-y-1">
                     {navigation.map((item) => (
@@ -479,8 +454,8 @@ export default function Header() {
                                       setMobileDropdown(null);
                                     }}
                                   >
-                                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${dropItem.gradient} flex items-center justify-center flex-shrink-0`}>
-                                      <dropItem.icon className="w-5 h-5 text-white" />
+                                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center flex-shrink-0`}>
+                                      <dropItem.icon className="w-5 h-5" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <p className="font-medium text-gray-900 text-sm">
