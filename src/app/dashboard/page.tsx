@@ -762,20 +762,47 @@ function UserDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchApplications = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id && !user?.email) return;
     try {
       setError(null);
-      const response = await fetch(`/api/applications?userId=${user.id}`);
-      if (!response.ok) throw new Error("Failed to fetch applications");
-      const data = await response.json();
-      const userApplications: UserApplication[] = data.applications || [];
+
+      // Fetch applications by user ID, email as userId, and email query to cover all cases
+      const fetchPromises = [];
+      if (user?.id) {
+        fetchPromises.push(fetch(`/api/applications?userId=${user.id}`));
+      }
+      if (user?.email) {
+        // This will search userId index AND email field in applications
+        fetchPromises.push(fetch(`/api/applications?userId=${encodeURIComponent(user.email)}`));
+        // Also search directly by email field
+        fetchPromises.push(fetch(`/api/applications?email=${encodeURIComponent(user.email)}`));
+      }
+
+      const responses = await Promise.all(fetchPromises);
+      const allApplications: UserApplication[] = [];
+      const seenIds = new Set<string>();
+
+      for (const response of responses) {
+        if (response.ok) {
+          const data = await response.json();
+          for (const app of (data.applications || [])) {
+            if (!seenIds.has(app.id)) {
+              seenIds.add(app.id);
+              allApplications.push(app);
+            }
+          }
+        }
+      }
+
       const applicationsWithJobs: ApplicationWithJob[] = await Promise.all(
-        userApplications.map(async (app) => {
+        allApplications.map(async (app) => {
           try {
-            const jobResponse = await fetch(`/api/jobs/${app.jobId}`);
-            if (jobResponse.ok) {
-              const jobData = await jobResponse.json();
-              return { ...app, job: jobData.job };
+            if (app.jobId) {
+              const jobResponse = await fetch(`/api/jobs/${app.jobId}`);
+              if (jobResponse.ok) {
+                const jobData = await jobResponse.json();
+                return { ...app, job: jobData.job };
+              }
             }
           } catch {
             // continue without job data
@@ -783,6 +810,12 @@ function UserDashboard() {
           return app;
         })
       );
+
+      // Sort by appliedAt (newest first)
+      applicationsWithJobs.sort((a, b) =>
+        new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime()
+      );
+
       setApplications(applicationsWithJobs);
     } catch (err) {
       console.error("Error fetching applications:", err);
@@ -791,7 +824,7 @@ function UserDashboard() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [user?.id]);
+  }, [user?.id, user?.email]);
 
   useEffect(() => {
     fetchApplications();

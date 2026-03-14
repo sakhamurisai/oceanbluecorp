@@ -33,7 +33,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Application, Job } from "@/lib/aws/dynamodb";
-import { useAuth } from "@/lib/auth/AuthContext";
+import { useAuth, UserRole } from "@/lib/auth";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -121,7 +121,8 @@ interface CognitoUser {
 }
 
 export default function TalentBenchPage() {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
+  const isAdmin = hasRole(UserRole.ADMIN);
   const router = useRouter();
   const [applications, setApplications] = useState<ApplicationWithJob[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -240,6 +241,8 @@ export default function TalentBenchPage() {
   const workAuthorizations = [...new Set(applications.map((a) => a.workAuthorization).filter(Boolean))] as string[];
 
   const filteredApplications = applications.filter((app) => {
+    // HR users can only see their own candidates, admins can see all
+    const matchesOwnership = isAdmin || app.ownership === user?.id;
     const matchesSearch =
       (app.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -249,7 +252,7 @@ export default function TalentBenchPage() {
     const matchesStatus = statusFilter === "all" || app.status === statusFilter;
     const matchesSkill = skillFilter === "all" || (app.skills?.includes(skillFilter) || false);
     const matchesAuth = authFilter === "all" || app.workAuthorization === authFilter;
-    return matchesSearch && matchesStatus && matchesSkill && matchesAuth;
+    return matchesOwnership && matchesSearch && matchesStatus && matchesSkill && matchesAuth;
   });
 
   const handleStatusChange = async (appId: string, newStatus: Application["status"]) => {

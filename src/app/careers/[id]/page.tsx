@@ -29,6 +29,7 @@ import {
   Heart,
 } from "lucide-react";
 import { Job } from "@/lib/aws/dynamodb";
+import { useAuth } from "@/lib/auth";
 
 // Format job type for display
 const formatJobType = (type: string) => {
@@ -75,6 +76,7 @@ export default function JobDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const jobId = params.id as string;
+  const { user, isAuthenticated } = useAuth();
 
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,6 +86,8 @@ export default function JobDetailsPage() {
   const [applicationSubmitted, setApplicationSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [hasApplied, setHasApplied] = useState(false);
+  const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -116,6 +120,47 @@ export default function JobDetailsPage() {
       fetchJob();
     }
   }, [jobId]);
+
+  // Check if user has already applied to this job
+  useEffect(() => {
+    const checkApplicationStatus = async () => {
+      if (!isAuthenticated || (!user?.id && !user?.email) || !jobId) return;
+
+      try {
+        const fetchPromises = [];
+
+        // Check by user ID
+        if (user?.id) {
+          fetchPromises.push(fetch(`/api/applications?userId=${user.id}`));
+        }
+
+        // Also check by email to catch applications submitted before login
+        if (user?.email) {
+          fetchPromises.push(fetch(`/api/applications?userId=${encodeURIComponent(user.email)}`));
+          fetchPromises.push(fetch(`/api/applications?email=${encodeURIComponent(user.email)}`));
+        }
+
+        const responses = await Promise.all(fetchPromises);
+        for (const response of responses) {
+          if (response.ok) {
+            const data = await response.json();
+            const application = (data.applications || []).find(
+              (app: { jobId: string; status: string }) => app.jobId === jobId
+            );
+            if (application) {
+              setHasApplied(true);
+              setApplicationStatus(application.status);
+              return; // Found application, no need to check further
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check application status:", err);
+      }
+    };
+
+    checkApplicationStatus();
+  }, [isAuthenticated, user?.id, user?.email, jobId]);
 
   const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,6 +208,7 @@ export default function JobDetailsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           jobId: job.id,
+          userId: isAuthenticated && user?.id ? user.id : formData.email,
           name: `${formData.firstName} ${formData.lastName}`,
           email: formData.email,
           phone: formData.phone,
@@ -177,12 +223,27 @@ export default function JobDetailsPage() {
       }
 
       setApplicationSubmitted(true);
+      setHasApplied(true);
+      setApplicationStatus("pending");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to submit application");
     } finally {
       setSubmitting(false);
     }
   };
+
+  // Pre-fill form with user data if authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const nameParts = user.name?.split(" ") || [];
+      setFormData((prev) => ({
+        ...prev,
+        firstName: nameParts[0] || prev.firstName,
+        lastName: nameParts.slice(1).join(" ") || prev.lastName,
+        email: user.email || prev.email,
+      }));
+    }
+  }, [isAuthenticated, user]);
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -203,7 +264,7 @@ export default function JobDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white pt-24 pb-16">
+      <div className="min-h-screen bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
@@ -215,7 +276,7 @@ export default function JobDetailsPage() {
 
   if (error || !job) {
     return (
-      <div className="min-h-screen bg-white pt-24 pb-16">
+      <div className="min-h-screen bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
           <div className="bg-gray-50 rounded-2xl border border-gray-200 p-12 text-center">
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Job not found</h2>
@@ -243,9 +304,9 @@ export default function JobDetailsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#F2F2F2] pt-32 ">
       {/* Breadcrumb */}
-      <div className="border-b border-gray-100 bg-gray-50/50">
+      <div className="border-b border-gray-100 bg-gray-50/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center gap-2 text-sm">
             
@@ -322,12 +383,26 @@ export default function JobDetailsPage() {
 
             {/* Apply Button (Mobile) */}
             <div className="lg:hidden">
-              <button
-                onClick={() => setShowApplyModal(true)}
-                className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-lg"
-              >
-                Apply for this position
-              </button>
+              {hasApplied ? (
+                <div className="w-full px-6 py-4 bg-green-50 border border-green-200 rounded-xl">
+                  <div className="flex items-center justify-center gap-2 text-green-700 font-semibold">
+                    <CheckCircle2 className="w-5 h-5" />
+                    Already Applied
+                  </div>
+                  {applicationStatus && (
+                    <p className="text-center text-sm text-green-600 mt-1 capitalize">
+                      Status: {applicationStatus.replace("-", " ")}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowApplyModal(true)}
+                  className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-lg"
+                >
+                  Apply for this position
+                </button>
+              )}
             </div>
 
             {/* Description */}
@@ -411,17 +486,42 @@ export default function JobDetailsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl p-8 text-center"
+              className={`rounded-2xl p-8 text-center ${hasApplied ? "bg-gradient-to-r from-green-500 to-emerald-500" : "bg-gradient-to-r from-blue-600 to-cyan-600"}`}
             >
-              <h3 className="text-2xl font-bold text-white mb-3">Ready to apply?</h3>
-              <p className="text-blue-100 mb-6">Join our team and help shape the future of enterprise IT.</p>
-              <button
-                onClick={() => setShowApplyModal(true)}
-                className="px-8 py-4 bg-white text-blue-600 font-semibold rounded-xl hover:shadow-lg transition-all inline-flex items-center gap-2"
-              >
-                <Sparkles className="w-5 h-5" />
-                Apply for this position
-              </button>
+              {hasApplied ? (
+                <>
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <CheckCircle2 className="w-8 h-8 text-white" />
+                    <h3 className="text-2xl font-bold text-white">Application Submitted</h3>
+                  </div>
+                  <p className="text-green-100 mb-4">You have already applied for this position.</p>
+                  {applicationStatus && (
+                    <span className="inline-block px-4 py-2 bg-white/20 text-white rounded-lg font-medium capitalize">
+                      Status: {applicationStatus.replace("-", " ")}
+                    </span>
+                  )}
+                  <div className="mt-6">
+                    <Link
+                      href="/dashboard"
+                      className="px-8 py-4 bg-white text-green-600 font-semibold rounded-xl hover:shadow-lg transition-all inline-flex items-center gap-2"
+                    >
+                      View My Applications
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-2xl font-bold text-white mb-3">Ready to apply?</h3>
+                  <p className="text-blue-100 mb-6">Join our team and help shape the future of enterprise IT.</p>
+                  <button
+                    onClick={() => setShowApplyModal(true)}
+                    className="px-8 py-4 bg-white text-blue-600 font-semibold rounded-xl hover:shadow-lg transition-all inline-flex items-center gap-2"
+                  >
+                    <Sparkles className="w-5 h-5" />
+                    Apply for this position
+                  </button>
+                </>
+              )}
             </motion.div>
           </div>
 
@@ -434,12 +534,26 @@ export default function JobDetailsPage() {
                 animate={{ opacity: 1, x: 0 }}
                 className="hidden lg:block bg-white rounded-2xl border border-gray-200 p-6 shadow-sm"
               >
-                <button
-                  onClick={() => setShowApplyModal(true)}
-                  className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-lg mb-4"
-                >
-                  Apply for this position
-                </button>
+                {hasApplied ? (
+                  <div className="w-full px-6 py-4 bg-green-50 border border-green-200 rounded-xl mb-4">
+                    <div className="flex items-center justify-center gap-2 text-green-700 font-semibold">
+                      <CheckCircle2 className="w-5 h-5" />
+                      Already Applied
+                    </div>
+                    {applicationStatus && (
+                      <p className="text-center text-sm text-green-600 mt-1 capitalize">
+                        Status: {applicationStatus.replace("-", " ")}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowApplyModal(true)}
+                    className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-lg mb-4"
+                  >
+                    Apply for this position
+                  </button>
+                )}
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setSaved(!saved)}
@@ -556,17 +670,17 @@ export default function JobDetailsPage() {
 
       {/* Apply Modal */}
       {showApplyModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col"
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[85vh] sm:max-h-[80vh] overflow-hidden flex flex-col"
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 bg-gray-50">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Apply for this position</h2>
-                <p className="text-gray-500 text-sm">{job.title}</p>
+                <h2 className="text-lg font-bold text-gray-900">Apply Now</h2>
+                <p className="text-gray-500 text-xs truncate max-w-[200px]">{job.title}</p>
               </div>
               <button
                 onClick={() => setShowApplyModal(false)}
@@ -577,107 +691,108 @@ export default function JobDetailsPage() {
             </div>
 
             {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-5">
               {applicationSubmitted ? (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="text-center py-8"
+                  className="text-center py-6"
                 >
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mx-auto mb-6">
-                    <CheckCircle2 className="w-10 h-10 text-white" />
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="w-8 h-8 text-white" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3">Application Submitted!</h3>
-                  <p className="text-gray-500 mb-8">
-                    Thank you for applying. We'll review your application and get back to you soon.
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Application Submitted!</h3>
+                  <p className="text-gray-500 text-sm mb-6">
+                    Thank you for applying. We'll get back to you soon.
                   </p>
                   <button
                     onClick={() => {
                       setShowApplyModal(false);
                       setApplicationSubmitted(false);
                     }}
-                    className="px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors"
+                    className="px-5 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
                   >
                     Close
                   </button>
                 </motion.div>
               ) : (
-                <form onSubmit={handleApply} className="space-y-5">
-                  <div className="grid sm:grid-cols-2 gap-4">
+                <form onSubmit={handleApply} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
+                      <label className="block text-xs font-medium text-gray-700 mb-1.5">First Name *</label>
                       <input
                         type="text"
                         required
                         value={formData.firstName}
                         onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                         placeholder="John"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
+                      <label className="block text-xs font-medium text-gray-700 mb-1.5">Last Name *</label>
                       <input
                         type="text"
                         required
                         value={formData.lastName}
                         onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                         placeholder="Doe"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-                    <input
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                      placeholder="john@example.com"
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1.5">Email *</label>
+                      <input
+                        type="email"
+                        required
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        placeholder="john@example.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1.5">Phone</label>
+                      <input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        placeholder="+1 (555) 000-0000"
+                      />
+                    </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
-                    <input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                      placeholder="+1 (555) 000-0000"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Resume</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Resume</label>
                     <div
-                      className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${
+                      className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
                         resumeFile ? "border-emerald-400 bg-emerald-50" : "border-gray-200 hover:border-gray-300 bg-gray-50"
                       }`}
                     >
                       {resumeFile ? (
-                        <div className="flex items-center justify-center gap-3">
-                          <FileText className="w-8 h-8 text-emerald-600" />
+                        <div className="flex items-center justify-center gap-2">
+                          <FileText className="w-6 h-6 text-emerald-600" />
                           <div className="text-left">
-                            <p className="font-medium text-gray-900">{resumeFile.name}</p>
-                            <p className="text-sm text-gray-500">{(resumeFile.size / 1024).toFixed(1)} KB</p>
+                            <p className="text-sm font-medium text-gray-900 truncate max-w-[150px]">{resumeFile.name}</p>
+                            <p className="text-xs text-gray-500">{(resumeFile.size / 1024).toFixed(1)} KB</p>
                           </div>
                           <button
                             type="button"
                             onClick={() => setResumeFile(null)}
                             className="p-1 hover:bg-emerald-100 rounded"
                           >
-                            <X className="w-5 h-5 text-gray-500" />
+                            <X className="w-4 h-4 text-gray-500" />
                           </button>
                         </div>
                       ) : (
                         <label className="cursor-pointer">
-                          <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                          <p className="font-medium text-gray-700 mb-1">Click to upload your resume</p>
-                          <p className="text-sm text-gray-500">PDF, DOC, DOCX (max 5MB)</p>
+                          <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                          <p className="text-sm font-medium text-gray-700">Upload resume</p>
+                          <p className="text-xs text-gray-500">PDF, DOC, DOCX (max 5MB)</p>
                           <input
                             type="file"
                             accept=".pdf,.doc,.docx"
@@ -692,26 +807,26 @@ export default function JobDetailsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Cover Letter</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Cover Letter (Optional)</label>
                     <textarea
-                      rows={4}
+                      rows={3}
                       value={formData.coverLetter}
                       onChange={(e) => setFormData({ ...formData, coverLetter: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white"
-                      placeholder="Tell us why you're interested in this position..."
+                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white"
+                      placeholder="Tell us why you're interested..."
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full px-5 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
                   >
                     {submitting ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <>
-                        <Sparkles className="w-5 h-5" />
+                        <Sparkles className="w-4 h-4" />
                         Submit Application
                       </>
                     )}

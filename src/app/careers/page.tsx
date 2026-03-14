@@ -18,8 +18,10 @@ import {
   Loader2,
   ArrowRight,
   CalendarClock,
+  CheckCircle2,
 } from "lucide-react";
 import { Job } from "@/lib/aws/dynamodb";
+import { useAuth } from "@/lib/auth";
 
 const departments = ["All Departments", "ERP Solutions", "Cloud Services", "Data & AI", "Salesforce", "IT Staffing", "Training", "PMO"];
 const jobTypes = ["All Types", "full-time", "part-time", "contract", "contract-to-hire", "direct-hire", "managed-teams", "remote"];
@@ -59,6 +61,7 @@ interface JobWithUI extends Job {
 }
 
 export default function CareersPage() {
+  const { user, isAuthenticated } = useAuth();
   const [jobs, setJobs] = useState<JobWithUI[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +72,7 @@ export default function CareersPage() {
   const [remoteOnly, setRemoteOnly] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
 
   // Get unique locations from jobs
   const locations = useMemo(() => {
@@ -104,6 +108,45 @@ export default function CareersPage() {
 
     fetchJobs();
   }, []);
+
+  // Fetch user's applications to show "Applied" badge
+  useEffect(() => {
+    const fetchUserApplications = async () => {
+      if (!isAuthenticated || (!user?.id && !user?.email)) return;
+
+      try {
+        const jobIds = new Set<string>();
+        const fetchPromises = [];
+
+        // Fetch by user ID
+        if (user?.id) {
+          fetchPromises.push(fetch(`/api/applications?userId=${user.id}`));
+        }
+
+        // Also fetch by email to catch applications submitted before login
+        if (user?.email) {
+          fetchPromises.push(fetch(`/api/applications?userId=${encodeURIComponent(user.email)}`));
+          fetchPromises.push(fetch(`/api/applications?email=${encodeURIComponent(user.email)}`));
+        }
+
+        const responses = await Promise.all(fetchPromises);
+        for (const response of responses) {
+          if (response.ok) {
+            const data = await response.json();
+            (data.applications || []).forEach((app: { jobId: string }) => {
+              if (app.jobId) jobIds.add(app.jobId);
+            });
+          }
+        }
+
+        setAppliedJobIds(jobIds);
+      } catch (err) {
+        console.error("Failed to fetch user applications:", err);
+      }
+    };
+
+    fetchUserApplications();
+  }, [isAuthenticated, user?.id, user?.email]);
 
   // Calculate time ago
   const getTimeAgo = (date: Date): string => {
@@ -375,6 +418,12 @@ export default function CareersPage() {
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                           <Link href={`/careers/${job.id}`} className="flex-1 group cursor-pointer">
                             <div className="flex flex-wrap items-center gap-2 mb-3">
+                              {appliedJobIds.has(job.id) && (
+                                <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  Applied
+                                </span>
+                              )}
                               <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-medium">
                                 {job.department}
                               </span>

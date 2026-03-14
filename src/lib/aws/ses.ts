@@ -153,7 +153,7 @@ export async function sendApplicationConfirmation(
   data: ApplicationConfirmationEmail
 ): Promise<{ success: boolean; error?: string }> {
   const subject = `Application Received - ${data.jobTitle}`;
-  const companyName = data.companyName || "Ocean Blue Corporation";
+  const companyName = data.companyName || "Ocean Blue Solutions Inc.";
 
   const htmlBody = `
     ${getEmailHeader()}

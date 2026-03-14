@@ -23,26 +23,52 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
     const jobId = searchParams.get("jobId");
+    const email = searchParams.get("email");
 
     let result;
+    let applications: Application[] = [];
 
     if (userId) {
+      // Query by userId index
       result = await getApplicationsByUser(userId);
+      if (result.success) {
+        applications = result.data || [];
+      }
+
+      // Also check if userId looks like an email - if so, also search by email field
+      // This handles cases where userId was stored as email for anonymous users
+      if (userId.includes("@")) {
+        const allAppsResult = await getAllApplications();
+        if (allAppsResult.success && allAppsResult.data) {
+          const emailMatches = allAppsResult.data.filter(
+            (app) => app.email?.toLowerCase() === userId.toLowerCase() &&
+                     !applications.some((a) => a.id === app.id)
+          );
+          applications = [...applications, ...emailMatches];
+        }
+      }
+    } else if (email) {
+      // Search by email field (scan with filter)
+      const allAppsResult = await getAllApplications();
+      if (allAppsResult.success && allAppsResult.data) {
+        applications = allAppsResult.data.filter(
+          (app) => app.email?.toLowerCase() === email.toLowerCase()
+        );
+      }
     } else if (jobId) {
       result = await getApplicationsByJob(jobId);
+      if (result.success) {
+        applications = result.data || [];
+      }
     } else {
       result = await getAllApplications();
-    }
-
-    if (!result.success) {
-      return NextResponse.json(
-        { error: result.error || "Failed to fetch applications" },
-        { status: 500 }
-      );
+      if (result.success) {
+        applications = result.data || [];
+      }
     }
 
     // Sort by appliedAt descending (newest first)
-    const applications = (result.data || []).sort(
+    applications.sort(
       (a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime()
     );
 
